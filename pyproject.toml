@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "rag-demo"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+packages = [{include = "rag_demo"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+streamlit = "^1.28.2"
+neo4j = "^5.15.0"
+tiktoken = "^0.5.1"
+langchain = "^0.0.343"
+chainlit = "^0.7.700"
+python-dotenv = "^1.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
