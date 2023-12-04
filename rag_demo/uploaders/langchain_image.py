@@ -1,3 +1,3 @@
 
-def upload(file: any):
+async def upload(file: any):
     raise NotImplementedError

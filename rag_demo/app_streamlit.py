@@ -1,47 +1,35 @@
 import streamlit as st
-import os
-from dotenv import load_dotenv
+from app_streamlit_sidebar import add_sidebar
+from uploaders.langchain_pdf import upload as load_pdf
+from uploaders.langchain_txt import upload as load_txt
+from utilities import enable_logging
+import logging
 
-st.title('Neo4j RAG Demo')
-# st.write('<description TBD>')
+def main():
+    st.title('Neo4j RAG Demo')
 
-# Sidebar for user to override or provide config options
-with st.sidebar:
-    st.write("SETTINGS")
-    st.markdown("------------")
+    # Setup Neo4j driver and standard logging
+    enable_logging()
 
-    # Load credentials from session state
-    url = st.session_state.get("url", None)
-    username = st.session_state.get("username", None)
-    password = st.session_state.get("password", None)
-    openai = st.session_state.get("openai", None)
+    # Sidebar for user to override or provide config options
+    add_sidebar()
 
-    # Optionally Load credentials from .env - if present
-    load_dotenv(".env")
-    if url is None: url = os.getenv("NEO4J_URI", "")
-    if username is None: username = os.getenv("NEO4J_USERNAME", "")
-    if password is None: password = os.getenv("NEO4J_PASSWORD", "")
-    if openai is None: openai = os.getenv("NEO4J_PASSWORD", "")
+    # Allow users to upload multiple files
+    files = st.file_uploader("Upload files", accept_multiple_files=True)
 
-    # Allow users to override credentials
-    url = st.text_input("Neo4j URI", url)
-    username = st.text_input("Neo4j Username", username)
-    password = st.text_input("Neo4j Password", password)
-    openai = st.text_input("OpenAI API Key", openai)
+    # TODO: Dedupe. There is known bug in Streamlit where the same file will be tracked multiple times on. https://github.com/streamlit/streamlit/issues/4877
 
-    # Update session state
-    if st.button("Update Settings"):
-        st.session_state["url"] = url
-        st.session_state["username"] = username
-        st.session_state["password"] = password
-        st.session_state["openai"] = openai
+    for file in files:
+        bytes_data = file.read()
+        logging.debug(f"File loaded: {file.__dict__}")
+        if file.type == "application/pdf":
+            load_pdf(bytes_data)
+        elif file.type == "text/plain":
+            load_txt(bytes_data)
+        else:
+            st.error(f"File type {file.type} not supported")
 
+    # TODO: Add Chat interface
 
-# Allow users to upload multiple files
-uploaded_files = st.file_uploader("Upload files", accept_multiple_files=True)
-for uploaded_file in uploaded_files:
-    bytes_data = uploaded_file.read()
-    st.write("filename:", uploaded_file.name)
-    st.write(bytes_data)    
-
-# TODO: Add Chat interface
+if __name__ == "__main__":
+    main()

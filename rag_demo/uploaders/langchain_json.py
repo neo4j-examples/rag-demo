@@ -1,7 +1,7 @@
 import json
 
 
-def upload(file: any):
+async def upload(file: any):
     """
     Uploads a JSON file to a Neo4j instance.
 

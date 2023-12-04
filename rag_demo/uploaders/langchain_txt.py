@@ -6,7 +6,7 @@ from langchain.vectorstores import Neo4jVector
 import os
 import logging
 
-async def upload(file: any):
+def upload(file: any):
     """
     Uploads a text file to a Neo4j database.
 
@@ -18,17 +18,12 @@ async def upload(file: any):
     Raises:
         Exceptions if data is not in the correct format or if the upload fails.
     """
-    # loader = TextLoader(file)
-    # documents = loader.load()
-    # text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-    # docs = text_splitter.split_documents(documents)
-
     text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=100)
     docs = [Document(page_content=x) for x in text_splitter.split_text(file.decode())]
     embeddings = OpenAIEmbeddings()
 
     url = os.getenv("NEO4J_URI")
-    username = os.getenv("NEO4J_USERNAME")
+    username = os.getenv("NEO4J_USER")
     password = os.getenv("NEO4J_PASSWORD")
 
     logging.info(f'Neo4j credentials found: {url}, {username}, {password}')
@@ -44,4 +39,9 @@ async def upload(file: any):
     docs = db.similarity_search(query)
 
     logging.info(docs[0].page_content)
+
     # TODO: Validate data was uploaded?
+
+    # TODO: Upload any parent-child relationships
+
+    # TODO: Scan for topics and add tag nodes and relationships
