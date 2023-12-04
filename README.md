@@ -5,5 +5,7 @@ This sample application demonstrates how to implement a Large Language Model (LL
 - [Poetry](https://python-poetry.org) for dependency managament.
 
 ## Usage
-`poetry update`
-`poetry run streamlit run rag_demo/app_streamlit.py`
+```
+poetry update
+poetry run streamlit run rag_demo/app_streamlit.py
+```
