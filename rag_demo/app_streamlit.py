@@ -18,11 +18,12 @@ with st.sidebar:
 
     # Optionally Load credentials from .env - if present
     load_dotenv(".env")
-    url = os.getenv("NEO4J_URI", "")
-    username = os.getenv("NEO4J_USERNAME", "")
-    password = os.getenv("NEO4J_PASSWORD", "")
-    openai = os.getenv("NEO4J_PASSWORD", "")
+    if url is None: url = os.getenv("NEO4J_URI", "")
+    if username is None: username = os.getenv("NEO4J_USERNAME", "")
+    if password is None: password = os.getenv("NEO4J_PASSWORD", "")
+    if openai is None: openai = os.getenv("NEO4J_PASSWORD", "")
 
+    # Allow users to override credentials
     url = st.text_input("Neo4j URI", url)
     username = st.text_input("Neo4j Username", username)
     password = st.text_input("Neo4j Password", password)
@@ -42,3 +43,5 @@ for uploaded_file in uploaded_files:
     bytes_data = uploaded_file.read()
     st.write("filename:", uploaded_file.name)
     st.write(bytes_data)    
+
+# TODO: Add Chat interface
