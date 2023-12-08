@@ -7,3 +7,5 @@ def extract_urls(text:str)->list[str]:
     return res
 
 # def webpage_description(url) -> str:
+
+# TODO: Take any url string and either pull down a .pdf or summarize a given webpage content

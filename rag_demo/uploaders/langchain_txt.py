@@ -27,14 +27,20 @@ def upload(
     username = os.getenv("NEO4J_USER")
     password = os.getenv("NEO4J_PASSWORD")
 
-    content = file.read()
+    try:
+        content = file.read()
+    except Exception as _:
+        try:
+            content = file.content
+        except Exception as e:
+            logging.error(f'Could not read file {file}')
 
     if document_exists(
         url=url,
         username=username,
         password=password,
-        filename = file.name,
-        text = content) is True:
+        filename = file.name
+        ) is True:
         return False
     
     text_splitter = CharacterTextSplitter(chunk_size=200, chunk_overlap=100)

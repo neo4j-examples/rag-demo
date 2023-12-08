@@ -21,17 +21,15 @@ def document_exists(url: str,
                     username: str,
                     password: str,
                     filename: str,
-                    text: str,
                     database: str = "neo4j",
                     ) -> bool:
     query = """
             MATCH (d:Document) 
-            WHERE d.name = $filename AND d.text = $text
+            WHERE d.name = $filename
             RETURN d.name AS filename
             """
     params = {
         "filename": filename,
-        "text": text
     }
     records, summary, keys = execute_query(url, username, password, query, params, database)
     logging.debug(f'document exists results: records: {records}, summary: {summary}, keys: {keys}')
@@ -106,6 +104,65 @@ def add_tags_to_chunk(
         params = {
             "text": chunk,
             "tags": tags
+        }
+        try:
+            graph.query(
+                query,
+                params
+            )
+        except ClientError:
+            pass
+     
+def add_tags_to_document(
+          filename: str,
+          tags: list[str],
+          url: str,
+          username: str,
+          password: str,
+          database: str = "neo4j"):
+        graph = Neo4jGraph(
+            url=url,
+            username=username,
+            password=password,
+            database=database
+        )
+        query = """
+                MATCH (c:Document {name: $filename})
+                WITH c
+                UNWIND $tags AS tag
+                MERGE (t:Tag {name:tag})
+                MERGE (c)-[:TAGGED]->(t)
+                """
+        params = {
+            "filename": filename,
+            "tags": tags
+        }
+        try:
+            graph.query(
+                query,
+                params
+            )
+        except ClientError:
+            pass
+
+def add_document(
+          filename: str,
+          full_text: str,
+          url: str,
+          username: str,
+          password: str,
+    ):
+        graph = Neo4jGraph(
+            url=url,
+            username=username,
+            password=password
+        )
+        query = """
+                MERGE (doc:Document {name:$filename, text: $full_text})
+                """
+        params = {
+            "filename": filename,
+            "full_text": full_text
         }
         try:
             graph.query(

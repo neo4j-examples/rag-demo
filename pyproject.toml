@@ -17,6 +17,11 @@ chainlit = "^0.7.700"
 python-dotenv = "^1.0.0"
 pypdf = "^3.17.1"
 openai = "^1.3.7"
+streamlit-chat = "^0.1.1"
+pdfminer = "^20191125"
+transformers = "^4.35.2"
+torch = "^2.1.1"
+chromadb = "^0.4.18"
 
 
 [build-system]

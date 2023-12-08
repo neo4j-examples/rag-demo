@@ -18,8 +18,7 @@ def upload(file: any) -> bool:
         url,
         username,
         password,
-        file.name,
-        ""
+        file.name
     ) is True:
         logging.debug(f'file {file} already uploaded')
         return False
