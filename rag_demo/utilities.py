@@ -15,4 +15,3 @@ def enable_logging():
 
     # Add a handler to print to stdout
     logging.getLogger().addHandler(logging.StreamHandler())
-
