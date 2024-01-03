@@ -11,9 +11,9 @@ import json
 
 import streamlit as st
 
-host = st.secrets["NEO4J_URI"]
-user = st.secrets["NEO4J_USERNAME"]
-password = st.secrets["NEO4J_PASSWORD"]
+host = st.session_state["NEO4J_URI"]
+user = st.session_state["NEO4J_USERNAME"]
+password = st.session_state["NEO4J_PASSWORD"]
 
 gds = GraphDataScience(
     host,

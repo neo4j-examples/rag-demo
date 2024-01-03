@@ -2,14 +2,14 @@ import boto3
 import streamlit as st
 import json
 
-SERVICE_NAME=st.secrets['SERVICE_NAME']
-REGION_NAME=st.secrets['REGION_NAME']
+SERVICE_NAME=st.session_state['SERVICE_NAME']
+REGION_NAME=st.session_state['REGION_NAME']
 bedrock = boto3.client(
  service_name=SERVICE_NAME,
  region_name=REGION_NAME,
  endpoint_url=f'https://{SERVICE_NAME}.{REGION_NAME}.amazonaws.com',
- aws_access_key_id=st.secrets["ACCESS_KEY"],
- aws_secret_access_key=st.secrets["SECRET_KEY"]
+ aws_access_key_id=st.session_state["ACCESS_KEY"],
+ aws_secret_access_key=st.session_state["SECRET_KEY"]
 )
 
 def get_client():

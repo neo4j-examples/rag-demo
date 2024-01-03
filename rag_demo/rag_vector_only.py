@@ -12,7 +12,7 @@ from json import loads, dumps
 
 bedrock = bedrock_util.get_client()
 
-model_name = st.secrets["CYPHER_MODEL"]
+model_name = st.session_state["CYPHER_MODEL"]
 if model_name == '':
     model_name = 'anthropic.claude-v2'
     
