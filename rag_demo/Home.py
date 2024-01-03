@@ -5,9 +5,11 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from neo4j_driver import run_query
 import streamlit.components.v1 as components
 import math
+import config
+# Import after session state has been initialized in config
+from neo4j_driver import run_query
 
 st.set_page_config(
     page_title="SEC EDGAR Filings",
