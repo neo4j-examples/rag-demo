@@ -16,9 +16,9 @@ Using LLM, SEC EDGAR filings are converted to Knowledge Graph.
 
 """, unsafe_allow_html=True)
 
-arch = Image.open('./images/arch.png')
-langchain = Image.open('./images/langchain-neo4j.png')
-schema = Image.open('./images/schema.png')
+arch = Image.open('./rag_demo/images/arch.png')
+langchain = Image.open('./rag_demo/images/langchain-neo4j.png')
+schema = Image.open('./rag_demo/images/schema.png')
 
 st.image(arch)
 st.markdown("""

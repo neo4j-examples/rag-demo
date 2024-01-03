@@ -8,10 +8,9 @@ import streamlit as st
 import ingestion.bedrock_util as bedrock_util
 import json
 
-host = st.secrets["NEO4J_HOST"]+":"+st.secrets["NEO4J_PORT"]
-user = st.secrets["NEO4J_USER"]
+host = st.secrets["NEO4J_URI"]
+user = st.secrets["NEO4J_USERNAME"]
 password = st.secrets["NEO4J_PASSWORD"]
-db = st.secrets["NEO4J_DB"]
 
 bedrock = bedrock_util.get_client()
 

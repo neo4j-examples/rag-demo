@@ -14,8 +14,8 @@ st.title("SEC - Form 10K Data Ingestion")
 
 with st.form("ingestion_form"):
    with st.expander("Uploaded file will be extracted as:"):
-      schema = Image.open('./images/form10-schema.png')
-      schema_data = Image.open('./images/form10-data.png')
+      schema = Image.open('./rag_demo/images/form10-schema.png')
+      schema_data = Image.open('./rag_demo/images/form10-data.png')
       st.markdown("### Schema")
       st.image(schema)
       st.markdown("### With Data")

@@ -3,13 +3,12 @@ from graphdatascience import GraphDataScience
 
 import streamlit as st
 
-host = st.secrets["NEO4J_HOST"]+":"+st.secrets["NEO4J_PORT"]
-user = st.secrets["NEO4J_USER"]
+host = st.secrets["NEO4J_URI"]
+user = st.secrets["NEO4J_USERNAME"]
 password = st.secrets["NEO4J_PASSWORD"]
-db = st.secrets["NEO4J_DB"]
 
 gds = GraphDataScience(
-    st.secrets["NEO4J_HOST"],
+    host,
     auth=(user, password),
     aura_ds=True)
 

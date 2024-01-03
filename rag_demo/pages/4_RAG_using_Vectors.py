@@ -54,19 +54,19 @@ col1, col2 = st.columns(2)
 with col1:
   st.markdown("### Vector Only approach")
   with st.expander("Vector Only Search does not have context and it is something like this:"):
-    vec_only = Image.open('./images/vector-only.png')
+    vec_only = Image.open('./rag_demo/images/vector-only.png')
     st.markdown("#### Relationships are ignored. So, lesser context")
     st.image(vec_only)
-    v = Image.open('./images/vector-only1.png')
+    v = Image.open('./rag_demo/images/vector-only1.png')
     st.markdown("#### Sample Doc Chunk")
     st.image(v)
 with col2:
   st.markdown("### Vector + Graph approach")
   with st.expander("Vector+Graph has full context like this:"):
-    schema = Image.open('./images/schema.png')
+    schema = Image.open('./rag_demo/images/schema.png')
     st.markdown("#### Relationships make this context-rich")
     st.image(schema)
-    vg = Image.open('./images/vector-graph.png')
+    vg = Image.open('./rag_demo/images/vector-graph.png')
     st.markdown("#### Sample Doc Chunk")
     st.image(vg)
 

@@ -10,13 +10,12 @@ from tqdm import tqdm
 
 bedrock = bedrock_util.get_client()
 EMBEDDING_MODEL = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client=bedrock)
-host = st.secrets["NEO4J_HOST"]+":"+st.secrets["NEO4J_PORT"]
-user = st.secrets["NEO4J_USER"]
+host = st.secrets["NEO4J_URI"]
+user = st.secrets["NEO4J_USERNAME"]
 password = st.secrets["NEO4J_PASSWORD"]
-db = st.secrets["NEO4J_DB"]
 
 gds = GraphDataScience(
-    st.secrets["NEO4J_HOST"],
+    host,
     auth=(user, password),
     aura_ds=True)
 

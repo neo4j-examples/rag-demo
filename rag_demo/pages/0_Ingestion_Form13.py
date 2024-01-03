@@ -14,7 +14,7 @@ st.title("SEC - Form 13 Data Ingestion")
 
 with st.form("ingestion_form"):
    with st.expander("Uploaded file will be extracted as:"):
-      schema = Image.open('./images/form13-schema.png')
+      schema = Image.open('./rag_demo/images/form13-schema.png')
       st.image(schema)
    uploaded_file = st.file_uploader('Upload SEC Form 13 Filing', type=['txt'])
    # Every form must have a submit button.
