@@ -23,6 +23,7 @@ requests = "^2.31.0"
 plotly = "5.15.0"
 tqdm = "^4.66.1"
 altair = "<5"
+segment-analytics-python = "^2.2.3"
 
 
 [build-system]

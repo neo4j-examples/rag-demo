@@ -16,28 +16,20 @@ REGION = "REGION_NAME"
 CYPHER_MODEL = "CYPHER_MODEL"
 ACCESS_KEY = "ACCESS_KEY"
 SECRET_KEY = "SECRET_KEY"
+SEGMENT_KEY = "SEGMENT_KEY"
 
 start_expanded = False
 
 # Attempt to load credentials from secrets file
-try: 
-    s_uri = st.secrets[URI]
-    s_username = st.secrets[USERNAME]
-    s_password = st.secrets[PASSWORD]
-    s_service = st.secrets[SERVICE]
-    s_region = st.secrets[REGION]
-    s_cypher_model = st.secrets[CYPHER_MODEL]
-    s_access_key = st.secrets[ACCESS_KEY]
-    s_secret_key = st.secrets[SECRET_KEY]
-except:
-    s_uri = ""
-    s_username = ""
-    s_password = ""
-    s_service = ""
-    s_region = ""
-    s_cypher_model = ""
-    s_access_key = ""
-    s_secret_key = ""
+s_uri = st.secrets.get(URI, "")
+s_username = st.secrets.get(USERNAME, "")
+s_password = st.secrets.get(PASSWORD, "")
+s_service = st.secrets.get(SERVICE, "")
+s_region = st.secrets.get(REGION, "")
+s_cypher_model = st.secrets.get(CYPHER_MODEL, "")
+s_access_key = st.secrets.get(ACCESS_KEY, "")
+s_secret_key = st.secrets.get(SECRET_KEY, "")
+s_segment_key = st.secrets.get(SEGMENT_KEY, "")
 
 # Initialize configuration into session state
 if URI not in st.session_state:
@@ -56,6 +48,8 @@ if ACCESS_KEY not in st.session_state:
     st.session_state[ACCESS_KEY] = s_access_key
 if SECRET_KEY not in st.session_state:
     st.session_state[SECRET_KEY] = s_secret_key
+if SEGMENT_KEY not in st.session_state:
+    st.session_state[SEGMENT_KEY] = s_segment_key
 
 if s_uri == "" or s_username == "" or s_password == "":
     start_expanded = True
@@ -71,6 +65,7 @@ with st.expander("Config", expanded = start_expanded):
     cypher_model = st.text_input(CYPHER_MODEL, value=st.session_state[CYPHER_MODEL])
     access_key = st.text_input("AWS ACCESS_KEY", value=st.session_state[ACCESS_KEY])
     secret_key = st.text_input("AWS SECRET_KEY", value=st.session_state[SECRET_KEY],type="password")
+    segment_key = st.text_input("SEGMENT_KEY", value=st.session_state[SEGMENT_KEY])
 
     # Update session state with new override session configuration if present
     if uri != s_uri:
@@ -89,9 +84,11 @@ with st.expander("Config", expanded = start_expanded):
         st.session_state[ACCESS_KEY] = access_key
     if secret_key != s_secret_key:
         st.session_state[SECRET_KEY] = secret_key
+    if segment_key != s_segment_key:
+        st.session_state[SEGMENT_KEY] = segment_key
 
-    # If no configuration info available, don't bother processing rest of page
-
+# If no configuration info available, don't bother processing rest of page
+# TODO: Expand on this
 if st.session_state[URI] is None or st.session_state[URI] == "":
     st.info('Neo4j Credentials missing - please add above')
     st.stop()
