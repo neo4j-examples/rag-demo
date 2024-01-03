@@ -14,7 +14,6 @@ try:
         aura_ds=True)
 
     gds.set_database("neo4j")
-    st.success("Neo4j Initialized")
 except:
     pass
 

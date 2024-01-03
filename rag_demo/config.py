@@ -1,5 +1,11 @@
 import streamlit as st
 
+st.set_page_config(
+    page_title="SEC EDGAR Filings",
+    page_icon="🧠",
+    layout="wide",
+)
+
 URI = "NEO4J_URI"
 USERNAME = "NEO4J_USERNAME"
 PASSWORD = "NEO4J_PASSWORD"
@@ -18,12 +24,12 @@ except:
 # Initialize configuration into session state
 if URI not in st.session_state:
     st.session_state[URI] = s_uri
-    start_expanded = True
 if USERNAME not in st.session_state:
     st.session_state[USERNAME] = s_username 
-    start_expanded = True
 if PASSWORD not in st.session_state:
     st.session_state[PASSWORD] = s_password
+
+if s_uri == "" or s_username == "" or s_password == "":
     start_expanded = True
 
 with st.expander("Config", expanded = start_expanded):

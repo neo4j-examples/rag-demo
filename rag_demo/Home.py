@@ -11,12 +11,6 @@ import config
 # Import after session state has been initialized in config
 from neo4j_driver import run_query
 
-st.set_page_config(
-    page_title="SEC EDGAR Filings",
-    page_icon="🧠",
-    layout="wide",
-)
-
 gen_ai = """| 
         <svg xmlns="http://www.w3.org/2000/svg" width="60" height="120" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="0 0 304 182" style="enable-background:new 0 0 304 182;" xml:space="preserve"><style type="text/css">
             .st0{fill:#252F3E;}
