@@ -8,4 +8,10 @@ This sample application demonstrates how to implement a Large Language Model (LL
 ```
 poetry update
 poetry run streamlit run rag_demo/Home.py --server.port=80
+
+OR
+
+pipenv shell
+pipenv install
+pipenv run streamlit run rag_demo/Home.py
 ```
