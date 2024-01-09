@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+langchain = "*"
+streamlit = "*"
+streamlit-chat = "*"
+retry = "*"
+tqdm = "*"
+plotly = "*"
+pillow = "*"
+boto3 = "*"
+graphdatascience = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
