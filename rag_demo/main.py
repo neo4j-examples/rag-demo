@@ -1,19 +1,18 @@
 import streamlit as st
 from streamlit_chat import message
+import streamlit.components.v1 as components
 from streamlit.components.v1 import html
+import config
 
 import rag_vector_only
 import rag_vector_graph
 from timeit import default_timer as timer
 from PIL import Image
-
 from langchain.globals import set_llm_cache
 from langchain.cache import InMemoryCache
 
 set_llm_cache(InMemoryCache())
 
-
-st.set_page_config(page_icon="🧠", layout="wide")
 gen_ai = """| 
         <svg xmlns="http://www.w3.org/2000/svg" width="60" height="120" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" id="Layer_1" x="0px" y="0px" viewBox="0 0 304 182" style="enable-background:new 0 0 304 182;" xml:space="preserve"><style type="text/css">
             .st0{fill:#252F3E;}
@@ -32,17 +31,71 @@ st.markdown(f"""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
     </style>
-    <div style='text-align: center; font-size: 2.5rem; font-weight: 600; font-family: "Roboto"; color: #018BFF; line-height:1; '>RAG with Vectors & Graph</div>
+    <div style='text-align: center; font-size: 2.5rem; font-weight: 600; font-family: "Roboto"; color: #018BFF; line-height:1; '>SEC EDGAR Filings</div>
     <div style='text-align: center; font-size: 1.5rem; font-weight: 300; font-family: "Roboto"; color: rgb(179 185 182); line-height:0; '>
         Powered by <svg width="80" height="60" xmlns="http://www.w3.org/2000/svg" id="Layer_1" data-name="Layer 1" viewBox="0 0 200 75"><path d="M39.23,19c-10.58,0-17.68,6.16-17.68,18.11v8.52A8,8,0,0,1,25,44.81a7.89,7.89,0,0,1,3.46.8V37.07c0-7.75,4.28-11.73,10.8-11.73S50,29.32,50,37.07V55.69h6.89V37.07C56.91,25.05,49.81,19,39.23,19Z"/><path d="M60.66,37.8c0-10.87,8-18.84,19.27-18.84s19.13,8,19.13,18.84v2.53H67.9c1,6.38,5.8,9.93,12,9.93,4.64,0,7.9-1.45,10-4.56h7.6c-2.75,6.66-9.27,10.94-17.6,10.94C68.63,56.64,60.66,48.67,60.66,37.8Zm31.15-3.62c-1.38-5.73-6.08-8.84-11.88-8.84S69.5,28.53,68.12,34.18Z"/><path d="M102.74,37.8c0-10.86,8-18.83,19.27-18.83s19.27,8,19.27,18.83-8,18.84-19.27,18.84S102.74,48.67,102.74,37.8Zm31.59,0c0-7.24-4.93-12.46-12.32-12.46S109.7,30.56,109.7,37.8,114.62,50.26,122,50.26,134.33,45.05,134.33,37.8Z"/><path d="M180.64,62.82h.8c4.42,0,6.08-2,6.08-7V20.16h6.89v35.2c0,8.84-3.48,13.4-12.32,13.4h-1.45Z"/><path d="M177.2,59.14h-6.89V50.65H152.86A8.64,8.64,0,0,1,145,46.2a7.72,7.72,0,0,1,.94-8.16L161.6,17.49a8.65,8.65,0,0,1,15.6,5.13V44.54h5.17v6.11H177.2ZM151.67,41.8a1.76,1.76,0,0,0-.32,1,1.72,1.72,0,0,0,1.73,1.73h17.23V22.45a1.7,1.7,0,0,0-1.19-1.68,2.36,2.36,0,0,0-.63-.09,1.63,1.63,0,0,0-1.36.73L151.67,41.8Z"/><path d="M191,5.53a5.9,5.9,0,1,0,5.89,5.9A5.9,5.9,0,0,0,191,5.53Z" fill="#018bff"/><path d="M24.7,47a5.84,5.84,0,0,0-3.54,1.2l-6.48-4.43a6,6,0,0,0,.22-1.59A5.89,5.89,0,1,0,9,48a5.81,5.81,0,0,0,3.54-1.2L19,51.26a5.89,5.89,0,0,0,0,3.19l-6.48,4.43A5.81,5.81,0,0,0,9,57.68a5.9,5.9,0,1,0,5.89,5.89A6,6,0,0,0,14.68,62l6.48-4.43a5.84,5.84,0,0,0,3.54,1.2A5.9,5.9,0,0,0,24.7,47Z" fill="#018bff"/></svg>
            
     </div>
 """, unsafe_allow_html=True)
 
+
+# RAG using Cypher page
+def generate_context(prompt, context_data='generated'):
+    context = []
+    # If any history exists
+    if st.session_state['generated']:
+        # Add the last three exchanges
+        size = len(st.session_state['generated'])
+        for i in range(max(size-3, 0), size):
+            context.append(st.session_state['user_input'][i])
+            if len(st.session_state[context_data]) > i:
+                context.append(st.session_state[context_data][i])
+    # Add the latest user prompt
+    context.append(str(prompt))
+    return context
+
+# Generated natural language
+if 'generated' not in st.session_state:
+    st.session_state['generated'] = []
+# User input
+if 'user_input' not in st.session_state:
+    st.session_state['user_input'] = []
+
+# Define columns
+col1, col2 = st.columns([2, 1])
+
+with col2:
+    another_placeholder = st.empty()
+with col1:
+    placeholder = st.empty()
+
+try:
+    arch = Image.open('./rag_demo/images/arch.png')
+    langchain = Image.open('./rag_demo/images/langchain-neo4j.png')
+    schema = Image.open('./rag_demo/images/schema.png')
+
+    st.session_state.generated.append("""
+This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
+""")
+
+except Exception as ex:
+    print(ex)
+    st.session_state.generated.append("Could not generate result due to an error or LLM Quota exceeded")
+
+# Message placeholder
+with placeholder.container():
+    if st.session_state['generated']:
+        size = len(st.session_state['generated'])
+        # Display only the last three exchanges
+        for i in range(max(size-3, 0), size):
+            # message(st.session_state['user_input'][i],
+            #         is_user=True, key=str(i) + '_user')
+            message(st.session_state["generated"][i], key=str(i))
+
+# RAG using Vectors page
 def rag_v(question):
   res = rag_vector_only.get_results(question)
   st.markdown(res['result'])
-
 
 def rag_vg(question):
   res = rag_vector_graph.get_results(question)
@@ -130,3 +183,122 @@ st.markdown("""
   </tr>
 </table>
 """, unsafe_allow_html=True)
+
+
+# def get_data() -> pd.DataFrame:
+#     return run_query("""
+#       MATCH (n:Manager) return n.name as Manager ORDER BY Manager""")
+
+# df_managers = get_data()
+
+# placeholder = st.empty()
+
+# with placeholder.container():
+#         df_companies = run_query("""MATCH (n:Company) return n.name as name""")
+#         assets_in_billions = math.floor(run_query("""MATCH (m:Manager)-[o:OWNS]->(c:Company) RETURN SUM(o.value)/1_000_000_000 as assetsInBillions""")['assetsInBillions'][0])
+
+#         kpi1, kpi2, kpi3 = st.columns(3)
+#         kpi1.metric(
+#             label="Managers",
+#             value=len(df_managers)
+#         )     
+#         kpi2.metric(
+#             label="Companies",
+#             value=len(df_companies)
+#         )
+#         kpi3.metric(
+#             label="Total Asset Value (In Billions)",
+#             value=assets_in_billions
+#         )
+    
+#         sankey_col = st.columns(1)
+#         st.markdown("### Managers & Assets")
+#         df_1 = run_query("""
+#             MATCH (e:Manager) 
+#             return e.name as id, e.name as label, '#33a02c' as color""")
+#         df_2 = run_query("""
+#             MATCH (c:Company)
+#             return c.cusip as id, c.nameOfIssuer as label, '#1f78b4' as color""")
+#         df_3 = run_query("""
+#             MATCH (e:Manager)-[o:OWNS]->(c:Company)
+#             return o.reportCalendarOrQuarter as id, 
+#                          o.reportCalendarOrQuarter as label, '#fdbf6f' as color""")
+#         df_123 = pd.concat([df_1, df_2], ignore_index=True)
+#         df_123 = pd.concat([df_123, df_3], ignore_index=True)
+#         df_mgr_co = run_query("""
+#             MATCH (e:Manager)-[o:OWNS]->(c:Company)
+#             return e.name as source, c.cusip as target, SUM(o.value)/1_000_000_000 as value, 
+#                 '#a6cee3' as link_color ORDER BY value DESC LIMIT 15""")
+#         df_co_date = run_query("""
+#             MATCH (e:Manager)-[o:OWNS]->(c:Company)
+#             return c.cusip as source, o.reportCalendarOrQuarter as target, SUM(o.value)/1_000_000_000 as value, 
+#                 '#fdbf6f' as link_color ORDER BY value DESC LIMIT 15""")
+#         df_mgr_co_date = pd.concat([df_mgr_co, df_co_date], ignore_index=True)
+#         label_mapping = dict(zip(df_123['id'], df_123.index))
+#         df_mgr_co_date['src_id'] = df_mgr_co_date['source'].map(label_mapping)
+#         df_mgr_co_date['target_id'] = df_mgr_co_date['target'].map(label_mapping)
+        
+#         sankey = go.Figure(data=[go.Sankey(
+#             arrangement="snap",
+#             node = dict(
+#                 pad = 15,
+#                 thickness = 20,
+#                 line = dict(
+#                     color = "black",
+#                     width = 0.4
+#                 ),
+#                 label = df_123['label'].values.tolist(),
+#                 color = df_123['color'].values.tolist(),
+#                 ),
+#             link = dict(
+#                 source = df_mgr_co_date['src_id'].values.tolist(),
+#                 target = df_mgr_co_date['target_id'].values.tolist(),
+#                 value = df_mgr_co_date['value'].values.tolist(),
+#                 color = df_mgr_co_date['link_color'].values.tolist()
+#             )
+#         )])
+#         st.plotly_chart(sankey, use_container_width=True)
+
+#         assets_col = st.columns(1)
+#         st.markdown("### Popular Companies by Assets (In Billions)")
+#         df_assets = run_query("""
+#             MATCH (m:Manager)-[o:OWNS]->(c:Company) 
+#             RETURN c.nameOfIssuer as company, 
+#                 SUM(o.value)/1_000_000_000 as assets 
+#             ORDER BY assets DESC limit 10""")
+#         size_max_default = 7
+#         scaling_factor = 5
+#         fig_assets = px.scatter(df_assets, x="company", y="assets",
+#                     size="assets", color="company",
+#                         hover_name="company", log_y=False, 
+#                         size_max=size_max_default*scaling_factor)
+#         st.plotly_chart(fig_assets, use_container_width=True)
+
+#         # create two columns for charts
+#         fig_col1, fig_col2 = st.columns(2)
+#         with fig_col1:
+#             st.markdown("### Managers with most Assets (In billions)")
+#             df = run_query("""
+#               MATCH (m:Manager)-[o:OWNS]->(c:Company) 
+#                 RETURN m.name as manager, 
+#                     SUM(o.value)/1_000_000_000 as assets 
+#                 ORDER BY assets DESC limit 10""")
+#             fig = px.scatter(df, x="manager", y="assets",
+#                       size="assets", color="manager",
+#                             hover_name="manager", log_y=False, 
+#                             size_max=size_max_default*scaling_factor)
+#             st.plotly_chart(fig, use_container_width=True)
+            
+#         with fig_col2:
+#             st.markdown("### Popular Locations of Managers")
+#             df = run_query("""
+#               MATCH (m:Manager)-[:HAS_ADDRESS]->(a:Address) 
+#                 RETURN toUpper(a.city) as city, 
+#                     count(*) as locations
+#                 ORDER BY locations DESC limit 10""")
+#             fig2 = px.scatter(df, x="city", y="locations",
+#                       size="locations", color="city",
+#                             hover_name="city", log_y=False, 
+#                             size_max=size_max_default*scaling_factor)
+#             st.plotly_chart(fig2, use_container_width=True)
+        
