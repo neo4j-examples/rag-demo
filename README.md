@@ -13,5 +13,5 @@ OR
 
 pipenv shell
 pipenv install
-pipenv run streamlit run main.py
+pipenv run streamlit run rag_demo/main.py
 ```

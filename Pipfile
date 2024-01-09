@@ -14,6 +14,7 @@ pillow = "*"
 boto3 = "*"
 graphdatascience = "*"
 
+
 [dev-packages]
 
 [requires]
