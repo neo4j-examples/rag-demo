@@ -46,7 +46,7 @@ def generate_context(prompt, context_data='generated'):
     if st.session_state['generated']:
         # Add the last three exchanges
         size = len(st.session_state['generated'])
-        for i in range(max(size-4, 0), size):
+        for i in range(max(size-3, 0), size):
             context.append(st.session_state['user_input'][i])
             if len(st.session_state[context_data]) > i:
                 context.append(st.session_state[context_data][i])
@@ -61,13 +61,6 @@ if 'generated' not in st.session_state:
 if 'user_input' not in st.session_state:
     st.session_state['user_input'] = []
 
-
-def get_text():
-    input_text = st.text_input(
-        "Ask away", "", key="input")
-    return input_text
-
-
 # Define columns
 col1, col2 = st.columns([2, 1])
 
@@ -75,17 +68,19 @@ with col2:
     another_placeholder = st.empty()
 with col1:
     placeholder = st.empty()
-user_input = get_text()
 
-if user_input:
-    start = timer()
-    try:
-        st.session_state.user_input.append(user_input)
-        st.session_state.generated.append('Welcome to the SEC EDGAR Filings Chatbot')
-    except Exception as ex:
-        print(ex)
-        st.session_state.user_input.append(user_input)
-        st.session_state.generated.append("Could not generate result due to an error or LLM Quota exceeded")
+try:
+    arch = Image.open('./rag_demo/images/arch.png')
+    langchain = Image.open('./rag_demo/images/langchain-neo4j.png')
+    schema = Image.open('./rag_demo/images/schema.png')
+
+    st.session_state.generated.append("""
+This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
+""")
+
+except Exception as ex:
+    print(ex)
+    st.session_state.generated.append("Could not generate result due to an error or LLM Quota exceeded")
 
 # Message placeholder
 with placeholder.container():
@@ -93,32 +88,9 @@ with placeholder.container():
         size = len(st.session_state['generated'])
         # Display only the last three exchanges
         for i in range(max(size-3, 0), size):
-            message(st.session_state['user_input'][i],
-                    is_user=True, key=str(i) + '_user')
+            # message(st.session_state['user_input'][i],
+            #         is_user=True, key=str(i) + '_user')
             message(st.session_state["generated"][i], key=str(i))
-
-    # arch = Image.open('./rag_demo/images/arch.png')
-    # langchain = Image.open('./rag_demo/images/langchain-neo4j.png')
-    # schema = Image.open('./rag_demo/images/schema.png')
-#     chat_history.append(st.markdown("""
-# This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
-# Using LLM, SEC EDGAR filings are converted to Knowledge Graph.
-# """))
-#     chat_history.append(st.markdown("""
-# ### Why Neo4j is a great addition to GenAI:
-# - *Fine-grained access control of your data* : You can control who can and cannot access parts of your data
-# - Greater reliability with factual data
-# - More Explainability
-# - Domain specificity
-# - Ability to gain insights using Graph Algorithms
-# - Vector embedding support and Similarity Algorithms on Neo4j
-# """))
-#     chat_history.append(st.markdown("""
-# This the schema in which the EDGAR filings are stored in Neo4j
-# """) + st.image(schema))
-#     chat_history.append(st.markdown("""
-# This is how the Chatbot flow goes:
-# """) + st.image(langchain))
 
 # RAG using Vectors page
 def rag_v(question):
