@@ -78,12 +78,17 @@ with col1:
 
 try:
     arch = Image.open('./rag_demo/images/arch.png')
-    langchain = Image.open('./rag_demo/images/langchain-neo4j.png')
-    schema = Image.open('./rag_demo/images/schema.png')
+    # langchain = Image.open('./rag_demo/images/langchain-neo4j.png')
+    # schema = Image.open('./rag_demo/images/schema.png')
+    schema_img_path = "https://raw.githubusercontent.com/neo4j-examples/rag-demo/reinvent/rag_demo/images/schema.png?token=GHSAT0AAAAAACKH5UXYT6YHOUOXGUIAP6VYZM7CQOA"
+    langchain_img_path = "https://raw.githubusercontent.com/neo4j-examples/rag-demo/reinvent/rag_demo/images/langchain-neo4j.png?token=GHSAT0AAAAAACKH5UXYVRGXG4ESOGAXIEOGZM7C2QA"
 
     st.session_state.generated.append("""
 This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
 """)
+    st.session_state.generated.append(f"""
+This the schema in which the EDGAR filings are stored in Neo4j: \n
+<img width="100%" src="{schema_img_path}"/>""")
 
 except Exception as ex:
     print(ex)
@@ -97,7 +102,8 @@ with placeholder.container():
         for i in range(max(size-3, 0), size):
             # message(st.session_state['user_input'][i],
             #         is_user=True, key=str(i) + '_user')
-            message(st.session_state["generated"][i], key=str(i))
+            # message(st.session_state["generated"][i], key=str(i))
+            message(st.session_state['generated'][i], key=str(i), allow_html=True)
 
 # RAG using Vectors page
 def rag_v(question):
