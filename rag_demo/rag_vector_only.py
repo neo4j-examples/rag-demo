@@ -5,7 +5,7 @@ from langchain.llms.bedrock import Bedrock
 from retry import retry
 from timeit import default_timer as timer
 import streamlit as st
-import ingestion.bedrock_util as bedrock_util
+import bedrock_util as bedrock_util
 from langchain.embeddings import BedrockEmbeddings
 from neo4j_driver import run_query
 from json import loads, dumps

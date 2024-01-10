@@ -11,6 +11,7 @@ st.set_page_config(
 URI = "NEO4J_URI"
 USERNAME = "NEO4J_USERNAME"
 PASSWORD = "NEO4J_PASSWORD"
+DATABASE = "NEO4J_DATABASE"
 SERVICE = "SERVICE_NAME"
 REGION = "REGION_NAME"
 CYPHER_MODEL = "CYPHER_MODEL"
@@ -24,6 +25,7 @@ start_expanded = False
 s_uri = st.secrets.get(URI, "")
 s_username = st.secrets.get(USERNAME, "")
 s_password = st.secrets.get(PASSWORD, "")
+s_database = st.secrets.get(DATABASE, "neo4j")
 s_service = st.secrets.get(SERVICE, "")
 s_region = st.secrets.get(REGION, "")
 s_cypher_model = st.secrets.get(CYPHER_MODEL, "")
@@ -38,6 +40,8 @@ if USERNAME not in st.session_state:
     st.session_state[USERNAME] = s_username 
 if PASSWORD not in st.session_state:
     st.session_state[PASSWORD] = s_password
+if DATABASE not in st.session_state:
+    st.session_state[DATABASE] = s_database
 if SERVICE not in st.session_state:
     st.session_state[SERVICE] = s_service
 if REGION not in st.session_state:
@@ -60,6 +64,7 @@ with st.expander("Config", expanded = start_expanded):
     uri = st.text_input(URI, value=st.session_state[URI])
     username = st.text_input(USERNAME, value=st.session_state[USERNAME])
     password = st.text_input(PASSWORD, value=st.session_state[PASSWORD],type="password")
+    database = st.text_input(DATABASE, value=st.session_state[DATABASE])
     service = st.text_input(SERVICE, value=st.session_state[SERVICE])
     region = st.text_input(REGION, value=st.session_state[REGION])
     cypher_model = st.text_input(CYPHER_MODEL, value=st.session_state[CYPHER_MODEL])
@@ -74,6 +79,8 @@ with st.expander("Config", expanded = start_expanded):
         st.session_state[USERNAME] = username
     if password != s_password:
         st.session_state[PASSWORD] = password
+    if database != s_database:
+        st.session_state[DATABASE] = database
     if service != s_service:
         st.session_state[SERVICE] = service
     if region != s_region:
