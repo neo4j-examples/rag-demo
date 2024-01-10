@@ -15,9 +15,9 @@ DATABASE = "NEO4J_DATABASE"
 SERVICE = "SERVICE_NAME"
 REGION = "REGION_NAME"
 CYPHER_MODEL = "CYPHER_MODEL"
-ACCESS_KEY = "ACCESS_KEY"
-SECRET_KEY = "SECRET_KEY"
-SEGMENT_KEY = "SEGMENT_KEY"
+AWS_ACCESS_KEY = "AWS_ACCESS_KEY"
+AWS_SECRET_KEY = "AWS_SECRET_KEY"
+SEGMENT_KEY = "SEGMENT_WRITE_KEY"
 
 start_expanded = False
 
@@ -29,8 +29,8 @@ s_database = st.secrets.get(DATABASE, "neo4j")
 s_service = st.secrets.get(SERVICE, "")
 s_region = st.secrets.get(REGION, "")
 s_cypher_model = st.secrets.get(CYPHER_MODEL, "")
-s_access_key = st.secrets.get(ACCESS_KEY, "")
-s_secret_key = st.secrets.get(SECRET_KEY, "")
+s_access_key = st.secrets.get(AWS_ACCESS_KEY, "")
+s_secret_key = st.secrets.get(AWS_SECRET_KEY, "")
 s_segment_key = st.secrets.get(SEGMENT_KEY, "")
 
 # Initialize configuration into session state
@@ -48,10 +48,10 @@ if REGION not in st.session_state:
     st.session_state[REGION] = s_region
 if CYPHER_MODEL not in st.session_state:
     st.session_state[CYPHER_MODEL] = s_cypher_model
-if ACCESS_KEY not in st.session_state:
-    st.session_state[ACCESS_KEY] = s_access_key
-if SECRET_KEY not in st.session_state:
-    st.session_state[SECRET_KEY] = s_secret_key
+if AWS_ACCESS_KEY not in st.session_state:
+    st.session_state[AWS_ACCESS_KEY] = s_access_key
+if AWS_SECRET_KEY not in st.session_state:
+    st.session_state[AWS_SECRET_KEY] = s_secret_key
 if SEGMENT_KEY not in st.session_state:
     st.session_state[SEGMENT_KEY] = s_segment_key
 
@@ -68,9 +68,9 @@ with st.expander("Config", expanded = start_expanded):
     service = st.text_input(SERVICE, value=st.session_state[SERVICE])
     region = st.text_input(REGION, value=st.session_state[REGION])
     cypher_model = st.text_input(CYPHER_MODEL, value=st.session_state[CYPHER_MODEL])
-    access_key = st.text_input("AWS ACCESS_KEY", value=st.session_state[ACCESS_KEY])
-    secret_key = st.text_input("AWS SECRET_KEY", value=st.session_state[SECRET_KEY],type="password")
-    segment_key = st.text_input("SEGMENT_KEY", value=st.session_state[SEGMENT_KEY])
+    access_key = st.text_input(AWS_ACCESS_KEY, value=st.session_state[AWS_ACCESS_KEY])
+    secret_key = st.text_input(AWS_SECRET_KEY, value=st.session_state[AWS_SECRET_KEY],type="password")
+    segment_key = st.text_input(SEGMENT_KEY, value=st.session_state[SEGMENT_KEY])
 
     # Update session state with new override session configuration if present
     if uri != s_uri:
@@ -88,9 +88,9 @@ with st.expander("Config", expanded = start_expanded):
     if cypher_model != s_cypher_model:
         st.session_state[CYPHER_MODEL] = cypher_model
     if access_key != s_access_key:
-        st.session_state[ACCESS_KEY] = access_key
+        st.session_state[AWS_ACCESS_KEY] = access_key
     if secret_key != s_secret_key:
-        st.session_state[SECRET_KEY] = secret_key
+        st.session_state[AWS_SECRET_KEY] = secret_key
     if segment_key != s_segment_key:
         st.session_state[SEGMENT_KEY] = segment_key
 

@@ -13,6 +13,7 @@ plotly = "*"
 pillow = "*"
 boto3 = "*"
 neo4j = "*"
+segment-analytics-python = "*"
 
 [dev-packages]
 
