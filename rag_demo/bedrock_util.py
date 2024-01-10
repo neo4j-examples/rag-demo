@@ -8,8 +8,8 @@ bedrock = boto3.client(
  service_name=SERVICE_NAME,
  region_name=REGION_NAME,
  endpoint_url=f'https://{SERVICE_NAME}.{REGION_NAME}.amazonaws.com',
- aws_access_key_id=st.session_state["ACCESS_KEY"],
- aws_secret_access_key=st.session_state["SECRET_KEY"]
+ aws_access_key_id=st.session_state["AWS_ACCESS_KEY"],
+ aws_secret_access_key=st.session_state["AWS_SECRET_KEY"]
 )
 
 def get_client():
