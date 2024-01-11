@@ -53,18 +53,20 @@ if 'generated' not in st.session_state:
 if 'user_input' not in st.session_state:
     st.session_state['user_input'] = []
 
-# Define columns
-col1, col2 = st.columns([2, 1])
+# Load images
+schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/schema_nc3002.png"
+langchain_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
 
-with col2:
-    another_placeholder = st.empty()
+# Define columns
+col1, col2 = st.columns(2)
+
 with col1:
     placeholder = st.empty()
+with col2:
+    another_placeholder = st.empty()
 
+# Add initial messages to context (chat history)
 try:
-    schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/schema_nc3002.png"
-    langchain_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
-
     st.session_state.generated.append("""
 This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
 """)
@@ -74,22 +76,46 @@ This the schema in which the EDGAR filings are stored in Neo4j: \n
     st.session_state.generated.append(f"""
 This is how the Chatbot flow goes: \n
 <img width="100%" src="{langchain_img_path}"/>""")
-
 except Exception as ex:
     print(ex)
     st.session_state.generated.append("Could not generate result due to an error or LLM Quota exceeded")
 
-# Message placeholder
-with placeholder.container():
-    if st.session_state['generated']:
+def chat_history():
+  if st.session_state['generated']:
         size = len(st.session_state['generated'])
         # Display only the last three exchanges
         for i in range(max(size-3, 0), size):
-            # message(st.session_state['user_input'][i],
-            #         is_user=True, key=str(i) + '_user')
-            message(st.session_state['generated'][i], key=str(i), allow_html=True)
+          if st.session_state['user_input']:
+            message(st.session_state['user_input'][i], is_user=True, key=str(i) + '_user')
+          
+          message(st.session_state['generated'][i], key=str(i), allow_html=True)
 
-# RAG using Vectors page
+# Message placeholder
+placeholder = st.empty()
+with placeholder.container():
+    chat_history()
+
+emoji_container = st.empty()
+with emoji_container.container():
+    # Like/Dislike buttons
+    col1,col2,col3,col4 = st.columns([3,3,0.25,0.25])
+    with col3:
+      if st.button(":thumbsup:"):
+        # st.write("Like")
+        st.session_state.user_input.append(":thumbsup:")
+        chat_history()
+    with col4:
+      if st.button(":thumbsdown:"):
+        # st.write("Dislike")
+        st.session_state.user_input.append(":thumbsdown:")
+        chat_history()
+
+# User input placeholder
+question = st.text_input("Ask question on the SEC Filings", value="")
+if question is not None and question!= "":
+  track("rag_demo", "question_submitted", {question: question})
+
+# Generate responses for vector and vector+graph
 def rag_v(question):
   res = rag_vector_only.get_results(question)
   st.markdown(res['result'])
@@ -98,10 +124,20 @@ def rag_vg(question):
   res = rag_vector_graph.get_results(question)
   st.markdown(res['result'])
 
-question = st.text_input("Ask question on the SEC Filings", value="")
-if question is not None and question!= "":
-  track("rag_demo", "question_submitted", {question: question})
+# Execute user input against the model
+if question:
+  st.session_state.user_input.append(question)
 
+  with st.spinner('Running ...'):
+    vector_response = rag_v(question)
+    st.session_state.generated.append(vector_response)
+    
+    vgraph_response = rag_vg(question)
+    st.session_state.generated.append(vgraph_response)
+
+    st.success('Done!')
+
+# Display context for vector vs vector+graph
 col1, col2 = st.columns(2)
 with col1:
   st.markdown("### Vector Only approach")
@@ -122,18 +158,9 @@ with col2:
     st.markdown("#### Sample Doc Chunk")
     st.image(vg)
 
-if question:
-  with col1:
-    with st.spinner('Running RAG using Vectors ...'):
-      rag_v(question)
-      st.success('Done!')
-  with col2:
-    with st.spinner('Running RAG using Vectors & Graphs ...'):
-      rag_vg(question)
-      st.success('Done!')
-
 st.markdown("---")
-
+# Display sample questions
+# TODO: Find reliable questions!
 st.markdown("""
 <style>
   table {
