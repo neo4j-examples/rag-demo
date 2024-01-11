@@ -11,6 +11,13 @@ from PIL import Image
 from langchain.globals import set_llm_cache
 from langchain.cache import InMemoryCache
 
+from analytics import track
+
+track(
+   "rag_demo",
+   "appStarted",
+   {})
+
 set_llm_cache(InMemoryCache())
 
 gen_ai = """| 
@@ -92,6 +99,8 @@ def rag_vg(question):
   st.markdown(res['result'])
 
 question = st.text_input("Ask question on the SEC Filings", value="")
+if question is not None and question!= "":
+  track("rag_demo", "question_submitted", {question: question})
 
 col1, col2 = st.columns(2)
 with col1:
