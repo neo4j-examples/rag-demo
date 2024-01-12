@@ -62,7 +62,7 @@ with col1:
     placeholder = st.empty()
 
 try:
-    schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/schema_nc3002.png"
+    schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1705091904/schema_e8zkkx.png"
     langchain_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
 
     st.session_state.generated.append("""
