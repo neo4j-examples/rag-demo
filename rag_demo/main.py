@@ -45,70 +45,70 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-
-# Generated natural language
-if 'generated' not in st.session_state:
-    st.session_state['generated'] = []
-# User input
-if 'user_input' not in st.session_state:
-    st.session_state['user_input'] = []
+# Initialize message history
+if 'messages' not in st.session_state:
+    st.session_state['messages'] = []
+# # Generated natural language
+# if 'role' not in st.session_state.messages:
+#     st.session_state.messages.role = {}
+# # User input
+# if 'user_input' not in st.session_state.messages:
+#     st.session_state['user_input'] = []
 
 # Load images
 schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/schema_nc3002.png"
 langchain_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
 
-# Define columns
-col1, col2 = st.columns(2)
+# Define message placeholder and emoji feedback placeholder
+col1, col2, col3 = st.columns([0.25, 5, 0.25])
 
-with col1:
-    placeholder = st.empty()
 with col2:
-    another_placeholder = st.empty()
+  placeholder = st.empty()
+  emoji_feedback = st.empty()
 
 # Add initial messages to context (chat history)
-try:
-    st.session_state.generated.append("""
-This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
-""")
-    st.session_state.generated.append(f"""
-This the schema in which the EDGAR filings are stored in Neo4j: \n
-<img width="100%" src="{schema_img_path}"/>""")
-    st.session_state.generated.append(f"""
-This is how the Chatbot flow goes: \n
-<img width="100%" src="{langchain_img_path}"/>""")
-except Exception as ex:
-    print(ex)
-    st.session_state.generated.append("Could not generate result due to an error or LLM Quota exceeded")
-
-def chat_history():
-  if st.session_state['generated']:
-        size = len(st.session_state['generated'])
-        # Display only the last three exchanges
-        for i in range(max(size-3, 0), size):
-          if st.session_state['user_input']:
-            message(st.session_state['user_input'][i], is_user=True, key=str(i) + '_user')
-          
-          message(st.session_state['generated'][i], key=str(i), allow_html=True)
-
-# Message placeholder
-placeholder = st.empty()
 with placeholder.container():
-    chat_history()
+  try:
+    message1 = {"role": "bot", "content": f"""
+This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
+"""}
+    message2 = {"role": "bot", "content": f"""
+This the schema in which the EDGAR filings are stored in Neo4j: \n
+<img width="100%" src="{schema_img_path}"/>"""}
+    message3 = {"role": "bot", "content": f"""
+This is how the Chatbot flow goes: \n
+<img width="100%" src="{langchain_img_path}"/>"""}
 
-emoji_container = st.empty()
-with emoji_container.container():
+    st.session_state.messages.append(message1)
+    st.session_state.messages.append(message2)
+    st.session_state.messages.append(message3)
+
+  except Exception as ex:
+    print(ex)
+    st.session_state.messages.append({"role": "bot", "content": f"""
+_Could not generate result due to an error or LLM Quota exceeded_"""})
+
+with emoji_feedback.container():
     # Like/Dislike buttons
     col1,col2,col3,col4 = st.columns([3,3,0.25,0.25])
     with col3:
       if st.button(":thumbsup:"):
-        # st.write("Like")
-        st.session_state.user_input.append(":thumbsup:")
-        chat_history()
+        st.session_state.messages.append({"role": "user", "content": "👍"})
     with col4:
       if st.button(":thumbsdown:"):
-        # st.write("Dislike")
-        st.session_state.user_input.append(":thumbsdown:")
-        chat_history()
+        st.session_state.messages.append({"role": "user", "content": "👎"})
+
+# Display chat history
+# def chat_history():
+with placeholder.container():
+    if st.session_state['messages']:
+        size = len(st.session_state['messages'])
+        # Display only the last three exchanges
+        for i in range(max(size-3, 0), size):
+          if st.session_state['messages'][i]['role'] == "bot":
+            message(st.session_state['messages'][i]['content'], key=str(i), allow_html=True)
+          else:
+            message(st.session_state['messages'][i]['content'], is_user=True, key=str(i) + '_user')
 
 # User input placeholder
 question = st.text_input("Ask question on the SEC Filings", value="")
@@ -136,6 +136,10 @@ if question:
     st.session_state.generated.append(vgraph_response)
 
     st.success('Done!')
+
+# # Display chat messages
+# with placeholder.container():
+#     chat_history()
 
 # Display context for vector vs vector+graph
 col1, col2 = st.columns(2)
