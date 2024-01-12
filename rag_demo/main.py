@@ -48,12 +48,6 @@ st.markdown(f"""
 # Initialize message history
 if 'messages' not in st.session_state:
     st.session_state['messages'] = []
-# # Generated natural language
-# if 'role' not in st.session_state.messages:
-#     st.session_state.messages.role = {}
-# # User input
-# if 'user_input' not in st.session_state.messages:
-#     st.session_state['user_input'] = []
 
 # Load images
 schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/schema_nc3002.png"
@@ -99,7 +93,6 @@ with emoji_feedback.container():
         st.session_state.messages.append({"role": "user", "content": "👎"})
 
 # Display chat history
-# def chat_history():
 with placeholder.container():
     if st.session_state['messages']:
         size = len(st.session_state['messages'])
@@ -136,10 +129,6 @@ if question:
     st.session_state.generated.append(vgraph_response)
 
     st.success('Done!')
-
-# # Display chat messages
-# with placeholder.container():
-#     chat_history()
 
 # Display context for vector vs vector+graph
 col1, col2 = st.columns(2)
