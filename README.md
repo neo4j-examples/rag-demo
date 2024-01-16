@@ -7,7 +7,7 @@ This sample application demonstrates how to implement a Large Language Model (LL
 ## Usage
 ```
 poetry update
-poetry run streamlit run rag_demo/Home.py --server.port=80
+poetry run streamlit run rag_demo/main.py --server.port=80
 
 OR
 

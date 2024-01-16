@@ -12,6 +12,7 @@ from langchain.globals import set_llm_cache
 from langchain.cache import InMemoryCache
 
 from analytics import track
+from streamlit_feedback import streamlit_feedback
 
 track(
    "rag_demo",
@@ -83,14 +84,11 @@ This is how the Chatbot flow goes: \n
 _Could not generate result due to an error or LLM Quota exceeded_"""})
 
 with emoji_feedback.container():
-    # Like/Dislike buttons
-    col1,col2,col3,col4 = st.columns([3,3,0.25,0.25])
-    with col3:
-      if st.button(":thumbsup:"):
-        st.session_state.messages.append({"role": "user", "content": "👍"})
-    with col4:
-      if st.button(":thumbsdown:"):
-        st.session_state.messages.append({"role": "user", "content": "👎"})
+  # Emoji feedback
+  feedback = streamlit_feedback(feedback_type="thumbs")
+  if feedback:
+    score = feedback['score']
+    st.session_state.messages.append({"role": "user", "content": f"""{score}"""})
 
 # Display chat history
 with placeholder.container():
@@ -119,7 +117,7 @@ def rag_vg(question):
 
 # Execute user input against the model
 if question:
-  st.session_state.user_input.append(question)
+  st.session_state.messages.append({"role": "user", "content": f"""{question}"""})
 
   with st.spinner('Running ...'):
     vector_response = rag_v(question)
