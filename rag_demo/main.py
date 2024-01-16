@@ -70,10 +70,10 @@ This is a Proof of Concept application which shows how GenAI can be used with Ne
 """)
     st.session_state.generated.append(f"""
 This the schema in which the EDGAR filings are stored in Neo4j: \n
-<img width="100%" heigh=200 src="{schema_img_path}"/>""")
+<img style="width: 100%; height: auto;" src="{schema_img_path}"/>""")
     st.session_state.generated.append(f"""
 This is how the Chatbot flow goes: \n
-<img width="100%" height=200 src="{langchain_img_path}"/>""")
+<img style="width: 100%; height: auto;" src="{langchain_img_path}"/>""")
 
 except Exception as ex:
     print(ex)
