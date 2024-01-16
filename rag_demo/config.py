@@ -18,6 +18,7 @@ CYPHER_MODEL = "CYPHER_MODEL"
 AWS_ACCESS_KEY = "AWS_ACCESS_KEY"
 AWS_SECRET_KEY = "AWS_SECRET_KEY"
 SEGMENT_KEY = "SEGMENT_WRITE_KEY"
+OPENAI_KEY = "OPENAI_API_KEY"
 
 start_expanded = False
 
@@ -32,6 +33,7 @@ s_cypher_model = st.secrets.get(CYPHER_MODEL, "")
 s_access_key = st.secrets.get(AWS_ACCESS_KEY, "")
 s_secret_key = st.secrets.get(AWS_SECRET_KEY, "")
 s_segment_key = st.secrets.get(SEGMENT_KEY, "")
+s_openai_key = st.secrets.get(OPENAI_KEY, "")
 
 # Initialize configuration into session state
 if URI not in st.session_state:
@@ -54,6 +56,8 @@ if AWS_SECRET_KEY not in st.session_state:
     st.session_state[AWS_SECRET_KEY] = s_secret_key
 if SEGMENT_KEY not in st.session_state:
     st.session_state[SEGMENT_KEY] = s_segment_key
+if OPENAI_KEY not in st.session_state:
+    st.session_state[OPENAI_KEY] = s_openai_key
 
 if s_uri == "" or s_username == "" or s_password == "":
     start_expanded = True
@@ -70,7 +74,8 @@ with st.expander("Config", expanded = start_expanded):
     cypher_model = st.text_input(CYPHER_MODEL, value=st.session_state[CYPHER_MODEL])
     access_key = st.text_input(AWS_ACCESS_KEY, value=st.session_state[AWS_ACCESS_KEY])
     secret_key = st.text_input(AWS_SECRET_KEY, value=st.session_state[AWS_SECRET_KEY],type="password")
-    segment_key = st.text_input(SEGMENT_KEY, value=st.session_state[SEGMENT_KEY])
+    segment_key = st.text_input(SEGMENT_KEY, value=st.session_state[SEGMENT_KEY], type="password")
+    openai_key = st.text_input(OPENAI_KEY, value=st.session_state[OPENAI_KEY], type="password")
 
     # Update session state with new override session configuration if present
     if uri != s_uri:
@@ -93,6 +98,8 @@ with st.expander("Config", expanded = start_expanded):
         st.session_state[AWS_SECRET_KEY] = secret_key
     if segment_key != s_segment_key:
         st.session_state[SEGMENT_KEY] = segment_key
+    if openai_key != s_openai_key:
+        st.session_state[OPENAI_KEY] = openai_key
 
 # If no configuration info available, don't bother processing rest of page
 # TODO: Expand on this
