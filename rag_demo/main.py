@@ -182,14 +182,12 @@ st.markdown("""
     <th colspan="3">Sample Questions to try out</th>
   </tr>
   <tr>
-    <td>Name the asset managers exposed to investments in regulated companies?</td>
-    <td>Which companies are vulnerable to lithium shortage?</td>
-    <td>Which asset managers own all the FAANG stocks?</td>
+    <td>Are there any employees mentioned who work at 2 different companies?</td>
+    <td>Which managers with a Chicago address own companies?</td>
   </tr>
   <tr>
-    <td>Which company makes the product Procore Analytics?</td>
-    <td>Which asset managers are vulnerable to lithium shortage?</td>
-    <td>Which company sells bicycle?</td>
+    <td>Which companies are vulnerable to lithium shortage?</td>
+    <td>Which manager has the most Amazon holdings?</td>
   </tr>
   <tr>
     <td></td>
