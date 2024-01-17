@@ -12,6 +12,7 @@ from langchain.globals import set_llm_cache
 from langchain.cache import InMemoryCache
 
 from analytics import track
+from streamlit_feedback import streamlit_feedback
 
 track(
    "rag_demo",
@@ -45,51 +46,67 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
+# Initialize message history
+if 'messages' not in st.session_state:
+    st.session_state['messages'] = []
 
-# Generated natural language
-if 'generated' not in st.session_state:
-    st.session_state['generated'] = []
-# User input
-if 'user_input' not in st.session_state:
-    st.session_state['user_input'] = []
+# Load images
+schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/schema_nc3002.png"
+langchain_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
 
-# Define columns
-col1, col2 = st.columns([2, 1])
+# Define message placeholder and emoji feedback placeholder
+col1, col2, col3 = st.columns([0.25, 5, 0.25])
 
 with col2:
-    another_placeholder = st.empty()
-with col1:
-    placeholder = st.empty()
+  placeholder = st.empty()
+  emoji_feedback = st.empty()
 
-try:
-    schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1705091904/schema_e8zkkx.png"
-    langchain_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
-
-    st.session_state.generated.append("""
-This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
-""")
-    st.session_state.generated.append(f"""
-This the schema in which the EDGAR filings are stored in Neo4j: \n
-<img style="width: 100%; height: auto;" src="{schema_img_path}"/>""")
-    st.session_state.generated.append(f"""
-This is how the Chatbot flow goes: \n
-<img style="width: 100%; height: auto;" src="{langchain_img_path}"/>""")
-
-except Exception as ex:
-    print(ex)
-    st.session_state.generated.append("Could not generate result due to an error or LLM Quota exceeded")
-
-# Message placeholder
+# Add initial messages to context (chat history)
 with placeholder.container():
-    if st.session_state['generated']:
-        size = len(st.session_state['generated'])
+  try:
+    message1 = {"role": "bot", "content": f"""
+This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
+"""}
+    message2 = {"role": "bot", "content": f"""
+This the schema in which the EDGAR filings are stored in Neo4j: \n
+<img width="100%" src="{schema_img_path}"/>"""}
+    message3 = {"role": "bot", "content": f"""
+This is how the Chatbot flow goes: \n
+<img width="100%" src="{langchain_img_path}"/>"""}
+
+    st.session_state.messages.append(message1)
+    st.session_state.messages.append(message2)
+    st.session_state.messages.append(message3)
+
+  except Exception as ex:
+    print(ex)
+    st.session_state.messages.append({"role": "bot", "content": f"""
+_Could not generate result due to an error or LLM Quota exceeded_"""})
+
+with emoji_feedback.container():
+  # Emoji feedback
+  feedback = streamlit_feedback(feedback_type="thumbs")
+  if feedback:
+    score = feedback['score']
+    st.session_state.messages.append({"role": "user", "content": f"""{score}"""})
+
+# Display chat history
+with placeholder.container():
+    if st.session_state['messages']:
+        size = len(st.session_state['messages'])
         # Display only the last three exchanges
         for i in range(max(size-3, 0), size):
-            # message(st.session_state['user_input'][i],
-            #         is_user=True, key=str(i) + '_user')
-            message(st.session_state['generated'][i], key=str(i), allow_html=True)
+          if st.session_state['messages'][i]['role'] == "bot":
+            message(st.session_state['messages'][i]['content'], key=str(i), allow_html=True)
+          else:
+            message(st.session_state['messages'][i]['content'], is_user=True, key=str(i) + '_user')
 
-# RAG using Vectors page
+# User input placeholder
+question = st.text_input("Ask question on the SEC Filings", value="")
+if question is not None and question!= "":
+  track("rag_demo", "question_submitted", {question: question})
+
+# Generate responses for vector and vector+graph
 def rag_v(question):
   res = rag_vector_only.get_results(question)
   st.markdown(res['result'])
@@ -98,10 +115,20 @@ def rag_vg(question):
   res = rag_vector_graph.get_results(question)
   st.markdown(res['result'])
 
-question = st.text_input("Ask question on the SEC Filings", value="")
-if question is not None and question!= "":
-  track("rag_demo", "question_submitted", {question: question})
+# Execute user input against the model
+if question:
+  st.session_state.messages.append({"role": "user", "content": f"""{question}"""})
 
+  with st.spinner('Running ...'):
+    vector_response = rag_v(question)
+    st.session_state.generated.append(vector_response)
+    
+    vgraph_response = rag_vg(question)
+    st.session_state.generated.append(vgraph_response)
+
+    st.success('Done!')
+
+# Display context for vector vs vector+graph
 col1, col2 = st.columns(2)
 with col1:
   st.markdown("### Vector Only approach")
@@ -122,18 +149,9 @@ with col2:
     st.markdown("#### Sample Doc Chunk")
     st.image(vg)
 
-if question:
-  with col1:
-    with st.spinner('Running RAG using Vectors ...'):
-      rag_v(question)
-      st.success('Done!')
-  with col2:
-    with st.spinner('Running RAG using Vectors & Graphs ...'):
-      rag_vg(question)
-      st.success('Done!')
-
 st.markdown("---")
-
+# Display sample questions
+# TODO: Find reliable questions!
 st.markdown("""
 <style>
   table {
