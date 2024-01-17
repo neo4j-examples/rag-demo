@@ -90,6 +90,32 @@ with emoji_feedback.container():
     score = feedback['score']
     st.session_state.messages.append({"role": "user", "content": f"""{score}"""})
 
+# Generate responses for vector and vector+graph
+def rag_v(question):
+  res = rag_vector_only.get_results(question)
+  # st.markdown(res['result'])
+  result = res['result']
+  st.session_state.messages.append({"role": "bot", "content": f"""Vector Only: \n {result}"""})
+
+def rag_vg(question):
+  res = rag_vector_graph.get_results(question)
+  # st.markdown(res['result'])
+  result = res['result']
+  st.session_state.messages.append({"role": "bot", "content": f"""Vector+Graph: \n {result}"""})
+
+# User input placeholder
+question = st.text_input("Ask question on the SEC Filings", value="")
+if question is not None and question!= "":
+  track("rag_demo", "question_submitted", {question: question})
+
+if question:
+    with st.spinner('Running RAG using Vectors ...'):
+      rag_v(question)
+      st.success('Vector Done!')
+    with st.spinner('Running RAG using Vectors & Graphs ...'):
+      rag_vg(question)
+      st.success('Vector+Graph Done!')
+
 # Display chat history
 with placeholder.container():
     if st.session_state['messages']:
@@ -101,34 +127,6 @@ with placeholder.container():
           else:
             message(st.session_state['messages'][i]['content'], is_user=True, key=str(i) + '_user')
 
-# User input placeholder
-question = st.text_input("Ask question on the SEC Filings", value="")
-if question is not None and question!= "":
-  track("rag_demo", "question_submitted", {question: question})
-
-# Generate responses for vector and vector+graph
-def rag_v(question):
-  res = rag_vector_only.get_results(question)
-  st.markdown(res['result'])
-
-def rag_vg(question):
-  res = rag_vector_graph.get_results(question)
-  st.markdown(res['result'])
-
-# Execute user input against the model
-if question:
-  st.session_state.messages.append({"role": "user", "content": f"""{question}"""})
-
-  with st.spinner('Running ...'):
-    vector_response = rag_v(question)
-    st.session_state.generated.append(vector_response)
-    
-    vgraph_response = rag_vg(question)
-    st.session_state.generated.append(vgraph_response)
-
-    st.success('Done!')
-
-# Display context for vector vs vector+graph
 col1, col2 = st.columns(2)
 with col1:
   st.markdown("### Vector Only approach")
@@ -148,7 +146,6 @@ with col2:
     vg = Image.open('./rag_demo/images/vector-graph.png')
     st.markdown("#### Sample Doc Chunk")
     st.image(vg)
-
 st.markdown("---")
 # Display sample questions
 # TODO: Find reliable questions!

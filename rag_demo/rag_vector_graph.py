@@ -1,20 +1,25 @@
 from langchain.chains import GraphCypherQAChain
 from langchain.graphs import Neo4jGraph
 from langchain.prompts.prompt import PromptTemplate
-from langchain.llms.bedrock import Bedrock
+# from langchain.llms.bedrock import Bedrock
+from langchain.chains import LLMChain
+from langchain_openai import OpenAIEmbeddings
+from langchain_openai import OpenAI
+
 from retry import retry
 from timeit import default_timer as timer
 import streamlit as st
-import bedrock_util as bedrock_util
-from langchain.embeddings import BedrockEmbeddings
+# import bedrock_util as bedrock_util
+# from langchain.embeddings import BedrockEmbeddings
 from neo4j_driver import run_query
 from json import loads, dumps
 
-bedrock = bedrock_util.get_client()
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+# bedrock = bedrock_util.get_client()
 
-model_name = st.session_state["CYPHER_MODEL"]
-if model_name == '':
-    model_name = 'anthropic.claude-v2'
+# model_name = st.session_state["CYPHER_MODEL"]
+# if model_name == '':
+#     model_name = 'anthropic.claude-v2'
     
 
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
@@ -41,11 +46,12 @@ PROMPT = PromptTemplate(
     input_variables=["input","context"], template=PROMPT_TEMPLATE
 )
 
-EMBEDDING_MODEL = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client=bedrock)
+# EMBEDDING_MODEL = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client=bedrock)
+EMBEDDING_MODEL = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 def vector_graph_qa(query):
     query_vector = EMBEDDING_MODEL.embed_query(query)
     return run_query("""
-    CALL db.index.vector.queryNodes('document-embeddings', 50, $queryVector)
+    CALL db.index.vector.queryNodes('document_embeddings', 50, $queryVector)
     YIELD node AS doc, score
     OPTIONAL MATCH (doc)<-[:HAS]-(company:Company), (company)<-[:OWNS]-(manager:Manager)
     RETURN company.nameOfIssuer AS companyName, doc.text as text, manager.name as asset_manager, avg(score) AS score
@@ -61,20 +67,23 @@ def df_to_context(df):
 def get_results(question):
     start = timer()
     try:
-        bedrock_llm = Bedrock(
-            model_id=model_name,
-            client=bedrock,
-            model_kwargs = {
-                "temperature":0,
-                "top_k":1, "top_p":0.1,
-                "anthropic_version":"bedrock-2023-05-31",
-                "max_tokens_to_sample": 2048
-            }
-        )
+        # bedrock_llm = Bedrock(
+        #     model_id=model_name,
+        #     client=bedrock,
+        #     model_kwargs = {
+        #         "temperature":0,
+        #         "top_k":1, "top_p":0.1,
+        #         "anthropic_version":"bedrock-2023-05-31",
+        #         "max_tokens_to_sample": 2048
+        #     }
+        # )
+        llm = OpenAI()
+
         df = vector_graph_qa(question)
         ctx = df_to_context(df)
         ans = PROMPT.format(input=question, context=ctx)
-        result = bedrock_llm(ans)
+        # result = bedrock_llm(ans)
+        result = llm(ans)
         r = {}
         r['context'] = ans
         r['result'] = result
