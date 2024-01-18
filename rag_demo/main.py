@@ -116,7 +116,12 @@ if question is not None and question!= "":
 def rag_v(question):
   res = rag_vector_only.get_results(question)
   print(f'rag_v results: {res}')
-  st.markdown(res['answer'])
+  # st.markdown(res['answer'])
+  sources = res['sources']
+  st.write(f"""{res["answer"]}""")
+  sources_split = sources.split(', ')
+  for source in sources_split:
+    st.write(f"""- [{source}]({source})""")
 
 def rag_vg(question):
   # res = rag_vector_graph.get_results(question)
@@ -133,78 +138,3 @@ if question:
     
     vgraph_response = rag_vg(question)
     st.session_state.generated.append(vgraph_response)
-
-    st.success('Done!')
-
-# Display context for vector vs vector+graph
-col1, col2 = st.columns(2)
-with col1:
-  st.markdown("### Vector Only approach")
-  with st.expander("Vector Only Search does not have context and it is something like this:"):
-    vec_only = Image.open('./rag_demo/images/vector-only.png')
-    st.markdown("#### Relationships are ignored. So, lesser context")
-    st.image(vec_only)
-    v = Image.open('./rag_demo/images/vector-only1.png')
-    st.markdown("#### Sample Doc Chunk")
-    st.image(v)
-with col2:
-  st.markdown("### Vector + Graph approach")
-  with st.expander("Vector+Graph has full context like this:"):
-    schema = Image.open('./rag_demo/images/schema.png')
-    st.markdown("#### Relationships make this context-rich")
-    st.image(schema)
-    vg = Image.open('./rag_demo/images/vector-graph.png')
-    st.markdown("#### Sample Doc Chunk")
-    st.image(vg)
-
-st.markdown("---")
-# Display sample questions
-# TODO: Find reliable questions!
-st.markdown("""
-<style>
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    border: none !important;
-    font-family: "Source Sans Pro", sans-serif;
-    color: rgba(49, 51, 63, 0.6);
-    font-size: 0.9rem;
-  }
-
-  tr {
-    border: none !important;
-  }
-  
-  th {
-    text-align: center;
-    colspan: 3;
-    border: none !important;
-    color: #0F9D58;
-  }
-  
-  th, td {
-    padding: 2px;
-    border: none !important;
-  }
-</style>
-
-<table>
-  <tr>
-    <th colspan="3">Sample Questions to try out</th>
-  </tr>
-  <tr>
-    <td>Name the asset managers exposed to investments in regulated companies?</td>
-    <td>Which companies are vulnerable to lithium shortage?</td>
-    <td>Which asset managers own all the FAANG stocks?</td>
-  </tr>
-  <tr>
-    <td>Which company makes the product Procore Analytics?</td>
-    <td>Which asset managers are vulnerable to lithium shortage?</td>
-    <td>Which company sells bicycle?</td>
-  </tr>
-  <tr>
-    <td></td>
-    <td></td>
-  </tr>
-</table>
-""", unsafe_allow_html=True)
