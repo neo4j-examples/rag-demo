@@ -1,20 +1,19 @@
+import config
 from langchain.chains import GraphCypherQAChain
-from langchain.graphs import Neo4jGraph
+from langchain_community.graphs import Neo4jGraph
 from langchain.prompts.prompt import PromptTemplate
-from langchain.llms.bedrock import Bedrock
+from langchain.vectorstores.neo4j_vector import Neo4jVector
+from langchain.chains import RetrievalQAWithSourcesChain
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from retry import retry
 from timeit import default_timer as timer
 import streamlit as st
-import bedrock_util as bedrock_util
-from langchain.embeddings import BedrockEmbeddings
 from neo4j_driver import run_query
 from json import loads, dumps
 
-bedrock = bedrock_util.get_client()
-
-model_name = st.session_state["CYPHER_MODEL"]
-if model_name == '':
-    model_name = 'anthropic.claude-v2'
+# model_name = st.session_state["CYPHER_MODEL"]
+# if model_name == '':
+#     model_name = 'anthropic.claude-v2'
     
 
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
@@ -41,15 +40,7 @@ PROMPT = PromptTemplate(
     input_variables=["input","context"], template=PROMPT_TEMPLATE
 )
 
-EMBEDDING_MODEL = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client=bedrock)
-def vector_only_qa(query):
-    query_vector = EMBEDDING_MODEL.embed_query(query)
-    return run_query("""
-    CALL db.index.vector.queryNodes('document-embeddings', 50, $queryVector)
-    YIELD node AS doc, score
-    RETURN doc.text as text, avg(score) AS score
-    ORDER BY score DESC LIMIT 50
-    """, params =  {'queryVector': query_vector})
+EMBEDDING_MODEL = OpenAIEmbeddings()
 
 def df_to_context(df):
     result = df.to_json(orient="records")
@@ -58,27 +49,25 @@ def df_to_context(df):
 
 @retry(tries=5, delay=5)
 def get_results(question):
-    start = timer()
-    try:
-        bedrock_llm = Bedrock(
-            model_id=model_name,
-            client=bedrock,
-            model_kwargs = {
-                "temperature":0,
-                "top_k":1, "top_p":0.1,
-                "anthropic_version":"bedrock-2023-05-31",
-                "max_tokens_to_sample": 2048
-            }
-        )
-        df = vector_only_qa(question)
-        ctx = df_to_context(df)
-        ans = PROMPT.format(input=question, context=ctx)
-        result = bedrock_llm(ans)
-        r = {}
-        r['context'] = ans
-        r['result'] = result
-        return r
-    finally:
-        print('Cypher Generation Time : {}'.format(timer() - start))
+    store = Neo4jVector.from_existing_index(
+        EMBEDDING_MODEL,
+        url=st.secrets["NEO4J_URI"],
+        username=st.secrets["NEO4J_USERNAME"],
+        password=st.secrets["NEO4J_PASSWORD"],
+        index_name="document_embeddings",
+    )
+    retriever = store.as_retriever()
+    chain = RetrievalQAWithSourcesChain.from_chain_type(
+        ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever
+    )
+
+    result = chain({
+        "question": question},
+        return_only_outputs = True
+    )
+
+    print(f'result: {result}')
+    # Will return a dict with keys: answer, sources
+    return result
 
 

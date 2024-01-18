@@ -14,10 +14,16 @@ from langchain.cache import InMemoryCache
 from analytics import track
 from streamlit_feedback import streamlit_feedback
 
+# Analytics tracking
 track(
    "rag_demo",
    "appStarted",
    {})
+
+# Message history setup
+if 'generated' not in st.session_state:
+    st.session_state['generated'] = []
+
 
 set_llm_cache(InMemoryCache())
 
@@ -109,11 +115,13 @@ if question is not None and question!= "":
 # Generate responses for vector and vector+graph
 def rag_v(question):
   res = rag_vector_only.get_results(question)
-  st.markdown(res['result'])
+  print(f'rag_v results: {res}')
+  st.markdown(res['answer'])
 
 def rag_vg(question):
-  res = rag_vector_graph.get_results(question)
-  st.markdown(res['result'])
+  # res = rag_vector_graph.get_results(question)
+  # st.markdown(res['result'])
+  pass
 
 # Execute user input against the model
 if question:
