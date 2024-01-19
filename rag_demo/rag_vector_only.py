@@ -61,7 +61,7 @@ def get_results(question):
         ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever
     )
 
-    result = chain({
+    result = chain.invoke({
         "question": question},
         return_only_outputs = True
     )
