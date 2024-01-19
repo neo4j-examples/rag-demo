@@ -55,8 +55,8 @@ with placeholder.container():
         st.markdown(message["content"], unsafe_allow_html=True)
 
 # User input placeholder
-with user_placeholder.container():
-  if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", key="user_input"):
+if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", key="user_input"):
+  with user_placeholder.container():
     track("rag_demo", "question_submitted", {"question": user_input})
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
