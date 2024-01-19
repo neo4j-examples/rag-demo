@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_chat import message
+# from streamlit_chat import message
 import streamlit.components.v1 as components
 from streamlit.components.v1 import html
 
@@ -19,11 +19,6 @@ track(
    "appStarted",
    {})
 
-# Message history setup
-if 'generated' not in st.session_state:
-    st.session_state['generated'] = []
-
-
 set_llm_cache(InMemoryCache())
 
 st.markdown(f"""
@@ -40,62 +35,57 @@ st.markdown(f"""
 # Define message placeholder and emoji feedback placeholder
 placeholder = st.empty()
 emoji_feedback = st.empty()
+user_placeholder = st.empty()
 
 # Initial images
-schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/schema_nc3002.png"
+schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1705091904/schema_e8zkkx.png"
 langchain_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
 
-# Initial messages to context (chat history)
-message1 = {"role": "bot", "content": f"""
-This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data.
-"""}
-message2 = {"role": "bot", "content": f"""
-This the schema in which the EDGAR filings are stored in Neo4j: \n
-<img width="100%" src="{schema_img_path}"/>"""}
-message3 = {"role": "bot", "content": f"""
-This is how the Chatbot flow goes: \n
-<img width="100%" src="{langchain_img_path}"/>"""}
-
 # Initialize message history
-if 'messages' not in st.session_state:
-    st.session_state['messages'] = [message1, message2, message3]
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+      {"role": "ai", "content": f"This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using text data."}, 
+      {"role": "ai", "content": f"""This the schema in which the EDGAR filings are stored in Neo4j: \n <img style="width: 70%; height: auto;" src="{schema_img_path}"/>"""}, 
+      {"role": "ai", "content": f"""This is how the Chatbot flow goes: \n <img style="width: 70%; height: auto;" src="{langchain_img_path}"/>"""}
+    ]
+# Display chat messages from history on app rerun
+with placeholder.container():
+  for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"], unsafe_allow_html=True)
 
+# User input placeholder
+with user_placeholder.container():
+  if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", key="user_input"):
+    track("rag_demo", "question_submitted", {"question": user_input})
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+      st.markdown(user_input)
+    
+    with st.chat_message("assistant"):
+      with st.spinner('Running ...'):
+        message_placeholder = st.empty()
+
+        vector_response = rag_vector_only.get_results(user_input)
+        content = vector_response['answer']
+
+        # Cite sources, if any
+        sources = vector_response['sources']
+        sources_split = sources.split(', ')
+        for source in sources_split:
+          if source != "" and source != "N/A" and source != "None":
+            content += f"\n - [{source}]({source})"
+
+        new_message = {"role": "ai", "content": content}
+        st.session_state.messages.append(new_message)
+
+      message_placeholder.markdown(content)
+      emoji_feedback = st.empty()
+
+# Emoji feedback
 with emoji_feedback.container():
-  # Emoji feedback
   feedback = streamlit_feedback(feedback_type="thumbs")
   if feedback:
     score = feedback['score']
     last_bot_message = st.session_state['messages'][-1]['content']
     track("rag_demo", "feedback_submitted", {"score": score, "bot_message": last_bot_message})
-
-# Display chat history
-with placeholder.container():
-    if st.session_state['messages']:
-        size = len(st.session_state['messages'])
-        for i in range(size):
-          if st.session_state['messages'][i]['role'] == "bot":
-            message(st.session_state['messages'][i]['content'], key=str(i), allow_html=True)
-          else:
-            message(st.session_state['messages'][i]['content'], is_user=True, key=str(i) + '_user')
-
-def on_input_change():
-    user_input = st.session_state.user_input
-    track("rag_demo", "question_submitted", {"question": user_input})
-    st.session_state.messages.append({"role": "user", "content": f"""{user_input}"""})
-    with st.spinner('Running ...'):
-      vector_response = rag_vector_only.get_results(user_input)
-      content = vector_response['answer']
-
-      # Cite sources, if any
-      sources = vector_response['sources']
-      sources_split = sources.split(', ')
-      for source in sources_split:
-        if source != "" and source != "N/A" and source != "None":
-           content += f"\n - [{source}]({source})"
-
-      new_message = {"role": "bot", "content": content}
-      st.session_state.messages.append(new_message)
-
-# User input placeholder
-with st.container():
-  st.text_input("Ask question on the SEC Filings", value="", on_change=on_input_change, key="user_input")    
