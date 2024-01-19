@@ -80,9 +80,10 @@ with user_placeholder.container():
         st.session_state.messages.append(new_message)
 
       message_placeholder.markdown(content)
-      emoji_feedback = st.empty()
+    
+  emoji_feedback = st.empty()
 
-# Emoji feedback
+  # Emoji feedback
 with emoji_feedback.container():
   feedback = streamlit_feedback(feedback_type="thumbs")
   if feedback:
