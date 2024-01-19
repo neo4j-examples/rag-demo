@@ -1,12 +1,11 @@
 from segment import analytics
 import streamlit as st
 import logging
-from config import SEGMENT_KEY
 import uuid
 
 SESSION_ID = "SESSION_ID"
 
-analytics.write_key = st.secrets[SEGMENT_KEY]
+analytics.write_key = st.secrets["SEGMENT_WRITE_KEY"]
 
 def track(
         user_id: str, 

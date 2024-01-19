@@ -1,4 +1,3 @@
-import config
 from langchain.chains import GraphCypherQAChain
 from langchain_community.graphs import Neo4jGraph
 from langchain.prompts.prompt import PromptTemplate

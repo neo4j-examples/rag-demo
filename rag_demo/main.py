@@ -2,7 +2,6 @@ import streamlit as st
 from streamlit_chat import message
 import streamlit.components.v1 as components
 from streamlit.components.v1 import html
-import config
 
 import rag_vector_only
 import rag_vector_graph
