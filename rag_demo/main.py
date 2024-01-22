@@ -62,13 +62,13 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
     with st.chat_message("user"):
       st.markdown(user_input)
     
-    with st.chat_message("assistant"):
+    with st.chat_message("ai"):
       with st.spinner('Running ...'):
         message_placeholder = st.empty()
 
-        # vector_response = rag_vector_only.get_results(user_input)
-        vector_response = rag_vector_graph.get_results(user_input)
-        content = vector_response['answer']
+        # Vector only response
+        vector_response = rag_vector_only.get_results(user_input)
+        content = f"##### Vector only: \n" + vector_response['answer']
 
         # Cite sources, if any
         sources = vector_response['sources']
@@ -81,6 +81,41 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
         st.session_state.messages.append(new_message)
 
       message_placeholder.markdown(content)
+
+      # Vector+Graph response (styling results as separate messages)
+      with st.spinner('Running ...'):
+        message_placeholder = st.empty()
+
+        vgraph_response = rag_vector_graph.get_results(user_input)
+        content = f"##### Vector + Graph: \n" + vgraph_response['answer']
+
+        # Cite sources, if any
+        sources = vgraph_response['sources']
+        sources_split = sources.split(', ')
+        for source in sources_split:
+          if source != "" and source != "N/A" and source != "None":
+            content += f"\n - [{source}]({source})"
+
+        new_message = {"role": "ai", "content": content}
+        st.session_state.messages.append(new_message)
+
+      message_placeholder.markdown(content)
+
+      # # Alternative: style results as single combined response message
+      # vector_response = rag_vector_graph.get_results(user_input)
+      # content += f"\n ##### Vector + Graph: \n" + vector_response['answer']
+
+      # # Cite sources, if any
+      # sources = vector_response['sources']
+      # sources_split = sources.split(', ')
+      # for source in sources_split:
+      #   if source != "" and source != "N/A" and source != "None":
+      #     content += f"\n - [{source}]({source})"
+
+      # new_message = {"role": "ai", "content": content}
+      # st.session_state.messages.append(new_message)
+
+      # message_placeholder.markdown(content)
     
   emoji_feedback = st.empty()
 
