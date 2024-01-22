@@ -66,7 +66,8 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
       with st.spinner('Running ...'):
         message_placeholder = st.empty()
 
-        vector_response = rag_vector_only.get_results(user_input)
+        # vector_response = rag_vector_only.get_results(user_input)
+        vector_response = rag_vector_graph.get_results(user_input)
         content = vector_response['answer']
 
         # Cite sources, if any

@@ -8,7 +8,10 @@ import streamlit as st
 
 from neo4j_driver import run_query
 from json import loads, dumps
- 
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain.vectorstores.neo4j_vector import Neo4jVector
+from langchain.chains import RetrievalQAWithSourcesChain
+
 
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
 * Answer the question STRICTLY based on the context provided in JSON below.
@@ -36,6 +39,18 @@ PROMPT = PromptTemplate(
 
 # EMBEDDING_MODEL = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client=bedrock)
 
+EMBEDDING_MODEL = OpenAIEmbeddings()
+
+url = st.secrets["NEO4J_URI"]
+username = st.secrets["NEO4J_USERNAME"]
+password = st.secrets["NEO4J_PASSWORD"]
+
+graph = Neo4jGraph(
+    url=url,
+    username=username,
+    password=password
+)
+
 # def vector_graph_qa(query):
 #     query_vector = EMBEDDING_MODEL.embed_query(query)
 #     return run_query("""
@@ -46,15 +61,62 @@ PROMPT = PromptTemplate(
 #     ORDER BY score DESC LIMIT 50
 #     """, params =  {'queryVector': query_vector})
 
+# def getRels(g, uri):
+#   # TODO: Update
+#   get_specializing_rels = f"""
+#     match (:Resource {{ uri: "{uri}"}})<-[:SPO]-(r)
+#     return r.name as relname
+#     """
+#   return "|".join([ sr["relname"] for sr in g.query(get_specializing_rels) ])
+
+
+# def getDynamicContextQueryForPattern(g, pattern):
+
+#   default_query = """
+#     match (node)
+#     return reduce(s="", x in [x in keys(node) where node[x] is :: string] | s + ", " + x + ":" + node[x]) as text, score, {} as metadata
+#     """
+
+#   context_query = default_query
+
+#   if pattern == "FURTHER_DETAIL":
+
+#     # TODO: Update ontology reference
+#     rels = getRels(graph, "http://www.nsmntx.org/2024/01/rag#furtherDetailRelationship")
+
+#     if rels != "":
+#       context_query = f"""
+#       match (node)-[:{rels}]->(sc)
+#       with node.term + ' ' + node.definition as self,  reduce(s="", item in collect(reduce(s="", x in [x in keys(sc) where sc[x] is :: string] | s + " " +  sc[x])) | s + "
+#       " + item )  as ctxt, score, {{}} as metadata limit 1
+#       return self +  ctxt as text, score, metadata
+#       """
+
+#   elif pattern == "INVERSE_CONTEXT":
+
+#     rels = getRels(graph, "http://www.nsmntx.org/2024/01/rag#inverseContextualisingRelationship")
+
+#     if rels != "":
+#       context_query = f"""
+#       match (node)<-[:{rels}]-(parent) with parent, score
+#       match (parent)-[:{rels}]->(sc)
+#       with reduce(s="", x in [x in keys(parent) where parent[x] is :: string] | s + ", " + x + ":" + parent[x]) as self,  reduce(s="", item in collect(reduce(s="", x in [x in keys(sc) where sc[x] is :: string] | s +  sc[x])) | s + "
+#       " + item )  as ctxt, score, {{}} as metadata limit 1
+#       return self +  ctxt as text, score, metadata
+#       """
+
+#   return context_query
+
 def df_to_context(df):
     result = df.to_json(orient="records")
     parsed = loads(result)
     return dumps(parsed)
 
+
 @retry(tries=5, delay=5)
 def get_results(question):
-    start = timer()
-    try:
+    # start = timer()
+    # try:
         # bedrock_llm = Bedrock(
         #     model_id=model_name,
         #     client=bedrock,
@@ -73,8 +135,28 @@ def get_results(question):
         # r['context'] = ans
         # r['result'] = result
         # return r
-        return None
-    finally:
-        print('Cypher Generation Time : {}'.format(timer() - start))
+    #     return None
+    # finally:
+    #     print('Cypher Generation Time : {}'.format(timer() - start))
 
+    store = Neo4jVector.from_existing_index(
+        EMBEDDING_MODEL,
+        url=url,
+        username=username,
+        password=password,
+        index_name="document_embeddings",
+        # retrieval_query= <replace_with_hardcoded_query>,
+    )
+    retriever = store.as_retriever()
+    chain = RetrievalQAWithSourcesChain.from_chain_type(
+        ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever
+    )
 
+    result = chain.invoke({
+        "question": question},
+        return_only_outputs = True
+    )
+
+    print(f'result: {result}')
+    # Will return a dict with keys: answer, sources
+    return result
