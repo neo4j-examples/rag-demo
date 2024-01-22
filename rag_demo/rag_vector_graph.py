@@ -48,7 +48,8 @@ password = st.secrets["NEO4J_PASSWORD"]
 graph = Neo4jGraph(
     url=url,
     username=username,
-    password=password
+    password=password,
+    # sanitize = True
 )
 
 # def vector_graph_qa(query):
@@ -139,14 +140,40 @@ def get_results(question):
     # finally:
     #     print('Cypher Generation Time : {}'.format(timer() - start))
 
-    store = Neo4jVector.from_existing_index(
-        EMBEDDING_MODEL,
-        url=url,
-        username=username,
-        password=password,
-        index_name="document_embeddings",
-        # retrieval_query= <replace_with_hardcoded_query>,
-    )
+    index_name = "document_text_openai_embeddings"
+    node_property_name = "text_openai_embedding"
+    url=st.secrets["NEO4J_URI"]
+    username=st.secrets["NEO4J_USERNAME"]
+    password=st.secrets["NEO4J_PASSWORD"]
+    retrieval_query = """
+    WITH node AS doc, score
+    OPTIONAL MATCH (doc)<-[:OWNS_STOCK_IN]-(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+    RETURN company.nameOfIssuer AS companyName, doc.text as text, manager.name as asset_manager, avg(score) AS score
+    ORDER BY score DESC LIMIT 50
+"""
+
+    try:
+        store = Neo4jVector.from_existing_index(
+            EMBEDDING_MODEL,
+            url=url,
+            username=username,
+            password=password,
+            index_name=index_name,
+            retrieval_query= retrieval_query,
+        )
+    except:
+        store = Neo4jVector.from_existing_graph(
+            embedding=EMBEDDING_MODEL,
+            url=url,
+            username=username,
+            password=password,
+            index_name=index_name,
+            node_label="Document",
+            text_node_properties=["text"],
+            embedding_node_property=node_property_name,
+            retrieval_query= retrieval_query,
+        )
+
     retriever = store.as_retriever()
     chain = RetrievalQAWithSourcesChain.from_chain_type(
         ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever

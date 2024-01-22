@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-langchain = "==0.1.1"
+langchain = "==0.1.2"
 streamlit = "==1.30"
 retry = "==0.9.2"
 tqdm = "==4.66.1"

@@ -48,13 +48,33 @@ def df_to_context(df):
 
 @retry(tries=5, delay=5)
 def get_results(question):
-    store = Neo4jVector.from_existing_index(
-        EMBEDDING_MODEL,
-        url=st.secrets["NEO4J_URI"],
-        username=st.secrets["NEO4J_USERNAME"],
-        password=st.secrets["NEO4J_PASSWORD"],
-        index_name="document_embeddings",
-    )
+
+    index_name = "document_text_openai_embeddings"
+    node_property_name = "text_openai_embedding"
+    url=st.secrets["NEO4J_URI"]
+    username=st.secrets["NEO4J_USERNAME"]
+    password=st.secrets["NEO4J_PASSWORD"]  
+
+    try:
+        store = Neo4jVector.from_existing_index(
+            EMBEDDING_MODEL,
+            url=url,
+            username=username,
+            password=password,
+            index_name=index_name,
+        )
+    except:
+        store = Neo4jVector.from_existing_graph(
+            embedding=EMBEDDING_MODEL,
+            url=url,
+            username=username,
+            password=password,
+            index_name=index_name,
+            node_label="Document",
+            text_node_properties=["text"],
+            embedding_node_property=node_property_name,
+        )
+
     retriever = store.as_retriever()
     chain = RetrievalQAWithSourcesChain.from_chain_type(
         ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever
