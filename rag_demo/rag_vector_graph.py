@@ -13,6 +13,7 @@ from langchain.vectorstores.neo4j_vector import Neo4jVector
 from langchain.chains import RetrievalQAWithSourcesChain
 
 
+# TODO: Add to chain
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
 * Answer the question STRICTLY based on the context provided in JSON below.
 * Do not assume or retrieve any information outside of the context 
@@ -148,7 +149,12 @@ def get_results(question):
     retrieval_query = """
     WITH node AS doc, score
     OPTIONAL MATCH (doc)<-[:OWNS_STOCK_IN]-(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-    RETURN company.nameOfIssuer AS companyName, doc.text as text, manager.name as asset_manager, avg(score) AS score
+    RETURN company.name AS companyName, doc.text as text, manager.managerName as asset_manager, avg(score) AS score
+    ORDER BY score DESC LIMIT 50
+"""
+    retrieval_query_2 = """
+    MATCH (doc:Document)<-[:OWNS_STOCK_IN]-(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+    RETURN company.name AS companyName, doc.text as text, manager.managerName as asset_manager, avg(score) AS score
     ORDER BY score DESC LIMIT 50
 """
 
