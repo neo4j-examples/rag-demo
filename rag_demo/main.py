@@ -14,10 +14,11 @@ from analytics import track
 from streamlit_feedback import streamlit_feedback
 
 # Analytics tracking
-track(
-   "rag_demo",
-   "appStarted",
-   {})
+if "SESSION_ID" not in st.session_state:
+  track(
+    "rag_demo",
+    "appStarted",
+    {})
 
 set_llm_cache(InMemoryCache())
 
@@ -77,6 +78,7 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
           if source != "" and source != "N/A" and source != "None":
             content += f"\n - [{source}]({source})"
 
+        track("rag_demo", "ai_response", {"type": "vector", "answer": content})
         new_message = {"role": "ai", "content": content}
         st.session_state.messages.append(new_message)
 
@@ -96,6 +98,7 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
           if source != "" and source != "N/A" and source != "None":
             content += f"\n - [{source}]({source})"
 
+        track("rag_demo", "ai_response", {"type": "vector_graph", "answer": content})
         new_message = {"role": "ai", "content": content}
         st.session_state.messages.append(new_message)
 
