@@ -13,7 +13,6 @@ from langchain.vectorstores.neo4j_vector import Neo4jVector
 from langchain.chains import RetrievalQAWithSourcesChain
 
 
-# TODO: Add to chain
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
 * Answer the question STRICTLY based on the context provided in JSON below.
 * Do not assume or retrieve any information outside of the context 
@@ -38,8 +37,6 @@ PROMPT = PromptTemplate(
     input_variables=["input","context"], template=PROMPT_TEMPLATE
 )
 
-# EMBEDDING_MODEL = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client=bedrock)
-
 EMBEDDING_MODEL = OpenAIEmbeddings()
 
 url = st.secrets["NEO4J_URI"]
@@ -50,64 +47,8 @@ graph = Neo4jGraph(
     url=url,
     username=username,
     password=password,
-    # sanitize = True
+    sanitize = True
 )
-
-# def vector_graph_qa(query):
-#     query_vector = EMBEDDING_MODEL.embed_query(query)
-#     return run_query("""
-#     CALL db.index.vector.queryNodes('document-embeddings', 50, $queryVector)
-#     YIELD node AS doc, score
-#     OPTIONAL MATCH (doc)<-[:HAS]-(company:Company), (company)<-[:OWNS]-(manager:Manager)
-#     RETURN company.nameOfIssuer AS companyName, doc.text as text, manager.name as asset_manager, avg(score) AS score
-#     ORDER BY score DESC LIMIT 50
-#     """, params =  {'queryVector': query_vector})
-
-# def getRels(g, uri):
-#   # TODO: Update
-#   get_specializing_rels = f"""
-#     match (:Resource {{ uri: "{uri}"}})<-[:SPO]-(r)
-#     return r.name as relname
-#     """
-#   return "|".join([ sr["relname"] for sr in g.query(get_specializing_rels) ])
-
-
-# def getDynamicContextQueryForPattern(g, pattern):
-
-#   default_query = """
-#     match (node)
-#     return reduce(s="", x in [x in keys(node) where node[x] is :: string] | s + ", " + x + ":" + node[x]) as text, score, {} as metadata
-#     """
-
-#   context_query = default_query
-
-#   if pattern == "FURTHER_DETAIL":
-
-#     # TODO: Update ontology reference
-#     rels = getRels(graph, "http://www.nsmntx.org/2024/01/rag#furtherDetailRelationship")
-
-#     if rels != "":
-#       context_query = f"""
-#       match (node)-[:{rels}]->(sc)
-#       with node.term + ' ' + node.definition as self,  reduce(s="", item in collect(reduce(s="", x in [x in keys(sc) where sc[x] is :: string] | s + " " +  sc[x])) | s + "
-#       " + item )  as ctxt, score, {{}} as metadata limit 1
-#       return self +  ctxt as text, score, metadata
-#       """
-
-#   elif pattern == "INVERSE_CONTEXT":
-
-#     rels = getRels(graph, "http://www.nsmntx.org/2024/01/rag#inverseContextualisingRelationship")
-
-#     if rels != "":
-#       context_query = f"""
-#       match (node)<-[:{rels}]-(parent) with parent, score
-#       match (parent)-[:{rels}]->(sc)
-#       with reduce(s="", x in [x in keys(parent) where parent[x] is :: string] | s + ", " + x + ":" + parent[x]) as self,  reduce(s="", item in collect(reduce(s="", x in [x in keys(sc) where sc[x] is :: string] | s +  sc[x])) | s + "
-#       " + item )  as ctxt, score, {{}} as metadata limit 1
-#       return self +  ctxt as text, score, metadata
-#       """
-
-#   return context_query
 
 def df_to_context(df):
     result = df.to_json(orient="records")
@@ -117,55 +58,30 @@ def df_to_context(df):
 
 @retry(tries=5, delay=5)
 def get_results(question):
-    # start = timer()
-    # try:
-        # bedrock_llm = Bedrock(
-        #     model_id=model_name,
-        #     client=bedrock,
-        #     model_kwargs = {
-        #         "temperature":0,
-        #         "top_k":1, "top_p":0.1,
-        #         "anthropic_version":"bedrock-2023-05-31",
-        #         "max_tokens_to_sample": 2048
-        #     }
-        # )
-        # df = vector_graph_qa(question)
-        # ctx = df_to_context(df)
-        # ans = PROMPT.format(input=question, context=ctx)
-        # result = bedrock_llm(ans)
-        # r = {}
-        # r['context'] = ans
-        # r['result'] = result
-        # return r
-    #     return None
-    # finally:
-    #     print('Cypher Generation Time : {}'.format(timer() - start))
 
-    index_name = "document_text_openai_embeddings"
-    node_property_name = "text_openai_embedding"
+    index_name = "form_10k_chunks"
+    node_property_name = "textEmbedding"
     url=st.secrets["NEO4J_URI"]
     username=st.secrets["NEO4J_USERNAME"]
     password=st.secrets["NEO4J_PASSWORD"]
-    retrieval_query = """
+    retrieval_query = f"""
     WITH node AS doc, score
-    OPTIONAL MATCH (doc)<-[:OWNS_STOCK_IN]-(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-    RETURN company.name AS companyName, doc.text as text, manager.managerName as asset_manager, avg(score) AS score
-    ORDER BY score DESC LIMIT 50
-"""
-    retrieval_query_2 = """
-    MATCH (doc:Document)<-[:OWNS_STOCK_IN]-(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-    RETURN company.name AS companyName, doc.text as text, manager.managerName as asset_manager, avg(score) AS score
-    ORDER BY score DESC LIMIT 50
+    OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+    WITH doc, score, company.name as companyName, collect(manager.managerName) as managers
+    RETURN doc.text AS text, score, {{companyName: companyName, assetManager: managers, popularityScore: doc.score, source: doc.source}} as metadata
+    ORDER BY score DESC LIMIT 5
 """
 
     try:
         store = Neo4jVector.from_existing_index(
-            EMBEDDING_MODEL,
+            embedding=EMBEDDING_MODEL,
             url=url,
             username=username,
             password=password,
+            database="neo4j",
             index_name=index_name,
-            retrieval_query= retrieval_query,
+            embedding_node_property=node_property_name,
+            retrieval_query=retrieval_query,
         )
     except:
         store = Neo4jVector.from_existing_graph(
@@ -177,10 +93,11 @@ def get_results(question):
             node_label="Document",
             text_node_properties=["text"],
             embedding_node_property=node_property_name,
-            retrieval_query= retrieval_query,
+            retrieval_query=retrieval_query,
         )
 
     retriever = store.as_retriever()
+
     chain = RetrievalQAWithSourcesChain.from_chain_type(
         ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever
     )

@@ -9,10 +9,6 @@ from timeit import default_timer as timer
 import streamlit as st
 from neo4j_driver import run_query
 from json import loads, dumps
-
-# model_name = st.session_state["CYPHER_MODEL"]
-# if model_name == '':
-#     model_name = 'anthropic.claude-v2'
     
 
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
@@ -49,19 +45,20 @@ def df_to_context(df):
 @retry(tries=5, delay=5)
 def get_results(question):
 
-    index_name = "document_text_openai_embeddings"
-    node_property_name = "text_openai_embedding"
+    index_name = "form_10k_chunks"
+    node_property_name = "textEmbedding"
     url=st.secrets["NEO4J_URI"]
     username=st.secrets["NEO4J_USERNAME"]
     password=st.secrets["NEO4J_PASSWORD"]  
 
     try:
         store = Neo4jVector.from_existing_index(
-            EMBEDDING_MODEL,
+            embedding=EMBEDDING_MODEL,
             url=url,
             username=username,
             password=password,
             index_name=index_name,
+            embedding_node_property=node_property_name,
         )
     except:
         store = Neo4jVector.from_existing_graph(
@@ -76,6 +73,8 @@ def get_results(question):
         )
 
     retriever = store.as_retriever()
+    # retriever.get_relevant_documents(question)[0]
+
     chain = RetrievalQAWithSourcesChain.from_chain_type(
         ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever
     )
