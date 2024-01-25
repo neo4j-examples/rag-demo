@@ -81,6 +81,7 @@ def get_results(question):
 
     result = chain.invoke({
         "question": question},
+        prompt=PROMPT,
         return_only_outputs = True
     )
 

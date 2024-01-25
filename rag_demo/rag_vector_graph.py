@@ -47,7 +47,7 @@ graph = Neo4jGraph(
     url=url,
     username=username,
     password=password,
-    sanitize = True
+    # sanitize = True
 )
 
 def df_to_context(df):
@@ -64,13 +64,26 @@ def get_results(question):
     url=st.secrets["NEO4J_URI"]
     username=st.secrets["NEO4J_USERNAME"]
     password=st.secrets["NEO4J_PASSWORD"]
-    retrieval_query = f"""
-    WITH node AS doc, score
-    OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-    WITH doc, score, company.name as companyName, collect(manager.managerName) as managers
-    RETURN doc.text AS text, score, {{companyName: companyName, assetManager: managers, popularityScore: doc.score, source: doc.source}} as metadata
-    ORDER BY score DESC LIMIT 5
+    retrieval_query = """
+    WITH node AS doc, score as similarity
+    CALL { with doc
+        OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+        WITH doc, company.name as companyName, collect(manager.managerName) as managers
+        ORDER BY doc.score DESC
+        LIMIT 5
+        RETURN doc as document, companyName, managers
+    } 
+    RETURN '##Document: ' + document.documentId + '\n' + document.text + '\n' 
+        + companyName + '\n' + managers as text, similarity as score, {source: document.source} AS metadata
+    ORDER BY similarity ASC // so that best answers are the last
 """
+#     retrieval_query = f"""
+#     WITH node AS doc, score
+#     OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+#     WITH doc, score, company.name as companyName, collect(manager.managerName) as managers
+#     RETURN doc.text AS text, score, {{companyName: companyName, assetManager: managers, popularityScore: doc.score, source: doc.source}} as metadata
+#     ORDER BY score DESC LIMIT 5
+# """
 
     try:
         store = Neo4jVector.from_existing_index(
@@ -102,9 +115,15 @@ def get_results(question):
         ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever
     )
 
+    # print(question)
+    # print(PROMPT)
+    # TODO: We're not stuffing the prompt with the context documents.
+    # Should we send the prompt separately? or put the question into it and send that instead?
+
     result = chain.invoke({
         "question": question},
-        return_only_outputs = True
+        prompt=PROMPT,
+        return_only_outputs = True,
     )
 
     print(f'result: {result}')
