@@ -13,33 +13,6 @@ from langchain.vectorstores.neo4j_vector import Neo4jVector
 from langchain.chains import RetrievalQAWithSourcesChain
 
 
-# TODO: Add to chain
-PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
-* Answer the question STRICTLY based on the context provided in JSON below.
-* Do not assume or retrieve any information outside of the context 
-* Use three sentences maximum and keep the answer concise
-* Think step by step before answering.
-* Do not return helpful or extra text or apologies
-* Just return summary to the user. DO NOT start with Here is a summary
-* List the results in rich text format if there are more than one results
-* If the context is empty, just respond None
-
-<question>
-{input}
-</question>
-
-Here is the context:
-<context>
-{context}
-</context>
-
-Assistant:"""
-PROMPT = PromptTemplate(
-    input_variables=["input","context"], template=PROMPT_TEMPLATE
-)
-
-# EMBEDDING_MODEL = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1", client=bedrock)
-
 EMBEDDING_MODEL = OpenAIEmbeddings()
 
 url = st.secrets["NEO4J_URI"]
@@ -50,96 +23,11 @@ graph = Neo4jGraph(
     url=url,
     username=username,
     password=password,
-    # sanitize = True
+    sanitize = True
 )
-
-# def vector_graph_qa(query):
-#     query_vector = EMBEDDING_MODEL.embed_query(query)
-#     return run_query("""
-#     CALL db.index.vector.queryNodes('document-embeddings', 50, $queryVector)
-#     YIELD node AS doc, score
-#     OPTIONAL MATCH (doc)<-[:HAS]-(company:Company), (company)<-[:OWNS]-(manager:Manager)
-#     RETURN company.nameOfIssuer AS companyName, doc.text as text, manager.name as asset_manager, avg(score) AS score
-#     ORDER BY score DESC LIMIT 50
-#     """, params =  {'queryVector': query_vector})
-
-# def getRels(g, uri):
-#   # TODO: Update
-#   get_specializing_rels = f"""
-#     match (:Resource {{ uri: "{uri}"}})<-[:SPO]-(r)
-#     return r.name as relname
-#     """
-#   return "|".join([ sr["relname"] for sr in g.query(get_specializing_rels) ])
-
-
-# def getDynamicContextQueryForPattern(g, pattern):
-
-#   default_query = """
-#     match (node)
-#     return reduce(s="", x in [x in keys(node) where node[x] is :: string] | s + ", " + x + ":" + node[x]) as text, score, {} as metadata
-#     """
-
-#   context_query = default_query
-
-#   if pattern == "FURTHER_DETAIL":
-
-#     # TODO: Update ontology reference
-#     rels = getRels(graph, "http://www.nsmntx.org/2024/01/rag#furtherDetailRelationship")
-
-#     if rels != "":
-#       context_query = f"""
-#       match (node)-[:{rels}]->(sc)
-#       with node.term + ' ' + node.definition as self,  reduce(s="", item in collect(reduce(s="", x in [x in keys(sc) where sc[x] is :: string] | s + " " +  sc[x])) | s + "
-#       " + item )  as ctxt, score, {{}} as metadata limit 1
-#       return self +  ctxt as text, score, metadata
-#       """
-
-#   elif pattern == "INVERSE_CONTEXT":
-
-#     rels = getRels(graph, "http://www.nsmntx.org/2024/01/rag#inverseContextualisingRelationship")
-
-#     if rels != "":
-#       context_query = f"""
-#       match (node)<-[:{rels}]-(parent) with parent, score
-#       match (parent)-[:{rels}]->(sc)
-#       with reduce(s="", x in [x in keys(parent) where parent[x] is :: string] | s + ", " + x + ":" + parent[x]) as self,  reduce(s="", item in collect(reduce(s="", x in [x in keys(sc) where sc[x] is :: string] | s +  sc[x])) | s + "
-#       " + item )  as ctxt, score, {{}} as metadata limit 1
-#       return self +  ctxt as text, score, metadata
-#       """
-
-#   return context_query
-
-def df_to_context(df):
-    result = df.to_json(orient="records")
-    parsed = loads(result)
-    return dumps(parsed)
-
 
 @retry(tries=5, delay=5)
 def get_results(question):
-    # start = timer()
-    # try:
-        # bedrock_llm = Bedrock(
-        #     model_id=model_name,
-        #     client=bedrock,
-        #     model_kwargs = {
-        #         "temperature":0,
-        #         "top_k":1, "top_p":0.1,
-        #         "anthropic_version":"bedrock-2023-05-31",
-        #         "max_tokens_to_sample": 2048
-        #     }
-        # )
-        # df = vector_graph_qa(question)
-        # ctx = df_to_context(df)
-        # ans = PROMPT.format(input=question, context=ctx)
-        # result = bedrock_llm(ans)
-        # r = {}
-        # r['context'] = ans
-        # r['result'] = result
-        # return r
-    #     return None
-    # finally:
-    #     print('Cypher Generation Time : {}'.format(timer() - start))
 
     index_name = "document_text_openai_embeddings"
     node_property_name = "text_openai_embedding"
