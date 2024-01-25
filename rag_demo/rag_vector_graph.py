@@ -67,21 +67,26 @@ def get_results(question):
     WITH node AS doc, score as similarity
     CALL { with doc
         OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-        WITH doc, company.name as companyName, collect(manager.managerName) as managers
+        WITH doc, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
         ORDER BY doc.score DESC
-        LIMIT 5
         RETURN doc as document, companyName, managers
     } 
-    RETURN '##Document: ' + document.documentId + '\n' + document.text + '\n' 
-        + companyName + '\n' + managers as text, similarity as score, {source: document.source} AS metadata
+    RETURN '##Document: ' + coalesce(document.documentId,'') +'\n'+ coalesce(document.text+'\n','') + 
+        '###Company: ' + coalesce(companyName,'') +'\n'+ '###Managers: ' + coalesce(managers,'') as text, 
+        similarity as score, {source: document.source} AS metadata
     ORDER BY similarity ASC // so that best answers are the last
 """
-#     retrieval_query = f"""
-#     WITH node AS doc, score
-#     OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-#     WITH doc, score, company.name as companyName, collect(manager.managerName) as managers
-#     RETURN doc.text AS text, score, {{companyName: companyName, assetManager: managers, popularityScore: doc.score, source: doc.source}} as metadata
-#     ORDER BY score DESC LIMIT 5
+#     retrieval_query = """
+#     WITH node AS doc, score as similarity
+#     CALL { with doc
+#         OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+#         WITH doc, company.name as companyName, collect(manager.managerName) as managers
+#         ORDER BY doc.score DESC
+#         RETURN doc as document, companyName, reduce(str='', manager IN managers | str + manager + '; ') as managersList
+#     } 
+#     RETURN coalesce('##Document: ' + document.documentId + '\n' + document.text + '\n### Company: ' + companyName + '\n### Managers: ' + managersList) as text, 
+#         similarity as score, {source: document.source} AS metadata
+#     ORDER BY similarity ASC // so that best answers are the last
 # """
 
 
@@ -91,7 +96,6 @@ def get_results(question):
             url=url,
             username=username,
             password=password,
-            database="neo4j",
             index_name=index_name,
             embedding_node_property=node_property_name,
             retrieval_query=retrieval_query,
