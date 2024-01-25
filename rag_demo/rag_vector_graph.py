@@ -47,17 +47,16 @@ graph = Neo4jGraph(
     url=url,
     username=username,
     password=password,
-    # sanitize = True
+    sanitize = True
 )
-
-def df_to_context(df):
-    result = df.to_json(orient="records")
-    parsed = loads(result)
-    return dumps(parsed)
-
 
 @retry(tries=5, delay=5)
 def get_results(question):
+
+    # TODO: Update index and node property names to reflect the embedding origin LLM,
+    # ie "document_text_openai" index and "text_openai_embedding"
+    # Currently the try-except block below only works with small datasets, it needs to be replaced 
+    # with a large node count variation
 
     index_name = "form_10k_chunks"
     node_property_name = "textEmbedding"
@@ -84,6 +83,7 @@ def get_results(question):
 #     RETURN doc.text AS text, score, {{companyName: companyName, assetManager: managers, popularityScore: doc.score, source: doc.source}} as metadata
 #     ORDER BY score DESC LIMIT 5
 # """
+
 
     try:
         store = Neo4jVector.from_existing_index(
