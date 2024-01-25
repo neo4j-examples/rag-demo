@@ -35,16 +35,19 @@ def get_results(question):
     username=st.secrets["NEO4J_USERNAME"]
     password=st.secrets["NEO4J_PASSWORD"]
     retrieval_query = """
-    WITH node AS doc, score
-    OPTIONAL MATCH (doc)<-[:OWNS_STOCK_IN]-(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-    RETURN company.name AS companyName, doc.text as text, manager.managerName as asset_manager, avg(score) AS score
-    ORDER BY score DESC LIMIT 50
+    WITH node AS doc, score as similarity
+    CALL { with doc
+        OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+        WITH doc, company.name as companyName, collect(manager.managerName) as managers
+        ORDER BY doc.score DESC
+        LIMIT 5
+        RETURN doc as document, companyName, managers
+    } 
+    RETURN '##Document: ' + document.documentId + '\n' + document.text + '\n' 
+        + companyName + '\n' + managers as text, similarity as score, {source: document.source} AS metadata
+    ORDER BY similarity ASC // so that best answers are the last
 """
-    retrieval_query_2 = """
-    MATCH (doc:Document)<-[:OWNS_STOCK_IN]-(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-    RETURN company.name AS companyName, doc.text as text, manager.managerName as asset_manager, avg(score) AS score
-    ORDER BY score DESC LIMIT 50
-"""
+
 
     try:
         store = Neo4jVector.from_existing_index(
