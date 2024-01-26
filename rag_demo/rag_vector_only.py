@@ -4,6 +4,7 @@ from langchain.prompts.prompt import PromptTemplate
 from langchain.vectorstores.neo4j_vector import Neo4jVector
 from langchain.chains import RetrievalQAWithSourcesChain
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain.chains.conversation.memory import ConversationBufferMemory
 from retry import retry
 from timeit import default_timer as timer
 import streamlit as st
@@ -36,6 +37,7 @@ PROMPT = PromptTemplate(
 )
 
 EMBEDDING_MODEL = OpenAIEmbeddings()
+MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer', return_messages=True)
 
 def df_to_context(df):
     result = df.to_json(orient="records")
@@ -76,7 +78,10 @@ def get_results(question):
     # retriever.get_relevant_documents(question)[0]
 
     chain = RetrievalQAWithSourcesChain.from_chain_type(
-        ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever
+        ChatOpenAI(temperature=0), 
+        chain_type="stuff", 
+        retriever=retriever,
+        memory=MEMORY
     )
 
     result = chain.invoke({

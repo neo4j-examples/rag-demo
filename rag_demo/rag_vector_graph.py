@@ -11,7 +11,7 @@ from json import loads, dumps
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.vectorstores.neo4j_vector import Neo4jVector
 from langchain.chains import RetrievalQAWithSourcesChain
-
+from langchain.chains.conversation.memory import ConversationBufferMemory
 
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
 * Answer the question STRICTLY based on the context provided in JSON below.
@@ -38,6 +38,7 @@ PROMPT = PromptTemplate(
 )
 
 EMBEDDING_MODEL = OpenAIEmbeddings()
+MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer', return_messages=True)
 
 url = st.secrets["NEO4J_URI"]
 username = st.secrets["NEO4J_USERNAME"]
@@ -116,7 +117,10 @@ def get_results(question):
     retriever = store.as_retriever()
 
     chain = RetrievalQAWithSourcesChain.from_chain_type(
-        ChatOpenAI(temperature=0), chain_type="stuff", retriever=retriever
+        ChatOpenAI(temperature=0), 
+        chain_type="stuff", 
+        retriever=retriever,
+        memory=MEMORY
     )
 
     # print(question)
