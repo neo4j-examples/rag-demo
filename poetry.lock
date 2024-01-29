@@ -1701,10 +1701,7 @@ files = [
 ]
 
 [package.dependencies]
-numpy = [
-    {version = ">=1.23.2,<2", markers = "python_version == \"3.11\""},
-    {version = ">=1.26.0,<2", markers = "python_version >= \"3.12\""},
-]
+numpy = {version = ">=1.23.2,<2", markers = "python_version == \"3.11\""}
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
 tzdata = ">=2022.7"
@@ -2564,6 +2561,22 @@ botocore = ">=1.33.2,<2.0a.0"
 
 [package.extras]
 crt = ["botocore[crt] (>=1.33.2,<2.0a.0)"]
+
+[[package]]
+name = "segment"
+version = "0.2.0"
+description = "The hassle-free way to integrate analytics into any python application."
+optional = false
+python-versions = "*"
+files = [
+    {file = "segment-0.2.0-py2.py3-none-any.whl", hash = "sha256:b5b52e5335b587c38a17f3309b2e780aabf765153e31074ef6c944782cd9120d"},
+    {file = "segment-0.2.0.tar.gz", hash = "sha256:4ddd84371ad44f3ba86a6c32e2a99d02fd58efd2124ef78cfe7d50d0f1c73f44"},
+]
+
+[package.dependencies]
+python-dateutil = ">2.1"
+requests = ">=2.7,<3.0"
+six = ">=1.5"
 
 [[package]]
 name = "segment-analytics-python"
@@ -3480,5 +3493,5 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.11"
-content-hash = "29e8e6acb99b19804bd9520719fa9c5727a82cf2dda4d47a9b751d1de3876cc4"
+python-versions = "3.11.6"
+content-hash = "8c61c45bf02218043a89e7ec7c64f1118165f38ea442d4f1bdf335eda0e47374"
