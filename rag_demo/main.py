@@ -13,6 +13,8 @@ from langchain.cache import InMemoryCache
 from analytics import track
 from streamlit_feedback import streamlit_feedback
 
+from neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
+
 # Analytics tracking
 if "SESSION_ID" not in st.session_state:
   track(
@@ -99,6 +101,25 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
             content += f"\n - [{source}]({source})"
 
         track("rag_demo", "ai_response", {"type": "vector_graph", "answer": content})
+        new_message = {"role": "ai", "content": content}
+        st.session_state.messages.append(new_message)
+
+      with st.spinner('Running agent...'):
+        message_placeholder = st.empty()
+
+        agent_response = neo4j_semantic_agent.invoke({"input":user_input})
+        print(agent_response)
+
+        content = f"##### Agent: \n" + agent_response['output']
+
+        # Cite sources, if any
+        # sources = agent_response['sources']
+        # sources_split = sources.split(', ')
+        # for source in sources_split:
+        #   if source != "" and source != "N/A" and source != "None":
+        #     content += f"\n - [{source}]({source})"
+
+        track("rag_demo", "ai_response", {"type": "agent", "answer": content})
         new_message = {"role": "ai", "content": content}
         st.session_state.messages.append(new_message)
 

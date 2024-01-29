@@ -2,7 +2,7 @@
 name = "rag-demo"
 version = "0.1.0"
 description = ""
-authors = ["Jason Koo <jalakoo@gmail.com>"]
+authors = ["Jason Koo <jalakoo@gmail.com>",  "Andreas Kollegger <andreas.kollegger@neo4j.com>"]
 readme = "README.md"
 packages = [{include = "rag_demo"}]
 
@@ -22,6 +22,7 @@ streamlit-feedback = "^0.1.3"
 chainlit = "^1.0.101"
 langchain-openai = "^0.0.2.post1"
 segment = "^0.2.0"
+neo4j-semantic-layer = {path = "packages/neo4j-semantic-layer", develop = true}
 
 
 [build-system]
