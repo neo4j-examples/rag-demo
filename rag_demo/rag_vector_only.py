@@ -75,7 +75,6 @@ def get_results(question):
         )
 
     retriever = store.as_retriever()
-    # retriever.get_relevant_documents(question)[0]
 
     chain = RetrievalQAWithSourcesChain.from_chain_type(
         ChatOpenAI(temperature=0), 

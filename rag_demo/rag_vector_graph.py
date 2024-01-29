@@ -66,13 +66,23 @@ def get_results(question):
     password=st.secrets["NEO4J_PASSWORD"]
     retrieval_query = """
     WITH node AS doc, score as similarity
-    CALL { with doc
-        OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-        WITH doc, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
-        ORDER BY doc.score DESC
-        RETURN doc as document, companyName, managers
-    } 
-    RETURN '##Document: ' + coalesce(document.documentId,'') +'\n'+ coalesce(document.text+'\n','') + 
+    CALL { WITH doc
+        OPTIONAL MATCH (prevDoc:Document)-[:NEXT]->(doc)
+        OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Document)
+        RETURN prevDoc, doc AS result, nextDoc
+    }
+    WITH result, prevDoc, nextDoc, similarity
+    CALL {
+        WITH result
+        OPTIONAL MATCH (result)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+        WITH result, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
+        WHERE companyName IS NOT NULL OR managers > ""
+        WITH result, companyName, managers
+        ORDER BY result.score DESC
+        RETURN result as document, result.score as popularity, companyName, managers
+    }
+    RETURN '##DocumentID: ' + coalesce(document.documentId,'') +'\n'+ 
+        '##Text: ' + coalesce(prevDoc.text+'\n','') + coalesce(document.text+'\n','') + coalesce(nextDoc.text+'\n','') +
         '###Company: ' + coalesce(companyName,'') +'\n'+ '###Managers: ' + coalesce(managers,'') as text, 
         similarity as score, {source: document.source} AS metadata
     ORDER BY similarity ASC // so that best answers are the last
@@ -81,11 +91,12 @@ def get_results(question):
 #     WITH node AS doc, score as similarity
 #     CALL { with doc
 #         OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-#         WITH doc, company.name as companyName, collect(manager.managerName) as managers
+#         WITH doc, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
 #         ORDER BY doc.score DESC
-#         RETURN doc as document, companyName, reduce(str='', manager IN managers | str + manager + '; ') as managersList
+#         RETURN doc as document, companyName, managers
 #     } 
-#     RETURN coalesce('##Document: ' + document.documentId + '\n' + document.text + '\n### Company: ' + companyName + '\n### Managers: ' + managersList) as text, 
+#     RETURN '##Document: ' + coalesce(document.documentId,'') +'\n'+ coalesce(document.text+'\n','') + 
+#         '###Company: ' + coalesce(companyName,'') +'\n'+ '###Managers: ' + coalesce(managers,'') as text, 
 #         similarity as score, {source: document.source} AS metadata
 #     ORDER BY similarity ASC // so that best answers are the last
 # """
