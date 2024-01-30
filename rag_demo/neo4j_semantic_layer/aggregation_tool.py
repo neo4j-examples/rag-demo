@@ -84,9 +84,9 @@ def aggregation_tool(
 
 
 class Entity(BaseModel):
-    name: str = Field(description="The name of a person or title of a movie")
+    name: str = Field(description="The name of a person, manager or company")
     type: str = Field(
-        description="Type of entity. Available options are: 'movie', 'person'"
+        description="Type of entity. Available options are: 'company', 'manager'"
     )
 
 
@@ -95,13 +95,13 @@ class AggregationInput(BaseModel):
         description="The complete question the user is asking with full context"
     )
     entities: Optional[List[Entity]] = Field(
-        description="List of movies or people in the question"
+        description="List of companies or managers in the question"
     )
 
 
 class AggregationTool(BaseTool):
     name = "AggregationTool"
-    description = "useful for when a user is searching any statistics like median, average, max about movies or actors"
+    description = "useful for when a user is searching any statistics like median, average, max about companies or managers"
     args_schema: Type[BaseModel] = AggregationInput
 
     def _run(

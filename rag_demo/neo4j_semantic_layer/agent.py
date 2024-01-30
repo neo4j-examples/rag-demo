@@ -15,13 +15,14 @@ from langchain_openai import ChatOpenAI
 # from neo4j_semantic_layer.recommendation_tool import RecommenderTool
 from neo4j_semantic_layer.company_tool import CompanyTool
 from rag_demo.neo4j_semantic_layer.company_tool import CompanyTool
+from rag_demo.neo4j_semantic_layer.manager_tool import ManagerTool
 from rag_demo.neo4j_semantic_layer.aggregation_tool import AggregationTool
 
 llm = ChatOpenAI(temperature=0, model="gpt-4")
 # tools = [InformationTool(), RecommenderTool(), MemoryTool()]
 # tools = [CompanyTool()]
 tools = load_tools(["human"])
-tools.extend([CompanyTool(), AggregationTool()])
+tools.extend([CompanyTool(), ManagerTool(), AggregationTool()])
 
 llm_with_tools = llm.bind(functions=[format_tool_to_openai_function(t) for t in tools])
 

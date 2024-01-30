@@ -15,6 +15,7 @@ from streamlit_feedback import streamlit_feedback
 
 # from neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
 from rag_demo.neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
+import logging
 
 # Analytics tracking
 if "SESSION_ID" not in st.session_state:
@@ -52,6 +53,7 @@ if "messages" not in st.session_state:
       {"role": "ai", "content": f"""This the schema in which the EDGAR filings are stored in Neo4j: \n <img style="width: 70%; height: auto;" src="{schema_img_path}"/>"""}, 
       {"role": "ai", "content": f"""This is how the Chatbot flow goes: \n <img style="width: 70%; height: auto;" src="{langchain_img_path}"/>"""}
     ]
+
 # Display chat messages from history on app rerun
 with placeholder.container():
   for message in st.session_state.messages:
@@ -68,7 +70,7 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
     
     # Vector only response
     with st.chat_message("ai"):
-      with st.spinner('Running ...'):
+      with st.spinner('Running vector RAG...'):
         message_placeholder = st.empty()
 
         vector_response = rag_vector_only.get_results(user_input)
@@ -88,22 +90,27 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
       message_placeholder.markdown(content)
 
       # Vector+Graph response (styling results as separate messages)
-      with st.spinner('Running ...'):
+      with st.spinner('Running Vector + Graph RAG...'):
         message_placeholder = st.empty()
 
         vgraph_response = rag_vector_graph.get_results(user_input)
         content = f"##### Vector + Graph: \n" + vgraph_response['answer']
 
         # Cite sources, if any
-        sources = vgraph_response['sources']
-        sources_split = sources.split(', ')
-        for source in sources_split:
-          if source != "" and source != "N/A" and source != "None":
-            content += f"\n - [{source}]({source})"
+        try:
+          sources = vgraph_response['sources']
+          sources_split = sources.split(', ')
+          for source in sources_split:
+            if source != "" and source != "N/A" and source != "None":
+              content += f"\n - [{source}]({source})"
+        except Exception as e:
+          logging.error(f'Problem extracting sources: {e}')
 
         track("rag_demo", "ai_response", {"type": "vector_graph", "answer": content})
         new_message = {"role": "ai", "content": content}
         st.session_state.messages.append(new_message)
+      
+      message_placeholder.markdown(content)
 
       # Agent response
       with st.spinner('Running agent...'):
