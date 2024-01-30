@@ -13,7 +13,8 @@ from langchain.cache import InMemoryCache
 from analytics import track
 from streamlit_feedback import streamlit_feedback
 
-from neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
+# from neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
+from rag_demo.neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
 
 # Analytics tracking
 if "SESSION_ID" not in st.session_state:
@@ -65,11 +66,11 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
     with st.chat_message("user"):
       st.markdown(user_input)
     
+    # Vector only response
     with st.chat_message("ai"):
       with st.spinner('Running ...'):
         message_placeholder = st.empty()
 
-        # Vector only response
         vector_response = rag_vector_only.get_results(user_input)
         content = f"##### Vector only: \n" + vector_response['answer']
 
@@ -104,6 +105,7 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
         new_message = {"role": "ai", "content": content}
         st.session_state.messages.append(new_message)
 
+      # Agent response
       with st.spinner('Running agent...'):
         message_placeholder = st.empty()
 
@@ -111,13 +113,6 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
         print(agent_response)
 
         content = f"##### Agent: \n" + agent_response['output']
-
-        # Cite sources, if any
-        # sources = agent_response['sources']
-        # sources_split = sources.split(', ')
-        # for source in sources_split:
-        #   if source != "" and source != "N/A" and source != "None":
-        #     content += f"\n - [{source}]({source})"
 
         track("rag_demo", "ai_response", {"type": "agent", "answer": content})
         new_message = {"role": "ai", "content": content}

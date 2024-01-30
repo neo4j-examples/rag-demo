@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from langchain.agents import AgentExecutor
+from langchain.agents import AgentExecutor, load_tools
 from langchain.agents.format_scratchpad import format_to_openai_function_messages
 from langchain.agents.output_parsers import OpenAIFunctionsAgentOutputParser
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -10,14 +10,18 @@ from langchain.tools.render import format_tool_to_openai_function
 # from langchain_community.chat_models import ChatOpenAI
 from langchain_openai import ChatOpenAI
 
-from neo4j_semantic_layer.information_tool import InformationTool
-from neo4j_semantic_layer.memory_tool import MemoryTool
-from neo4j_semantic_layer.recommendation_tool import RecommenderTool
+# from neo4j_semantic_layer.information_tool import InformationTool
+# from neo4j_semantic_layer.memory_tool import MemoryTool
+# from neo4j_semantic_layer.recommendation_tool import RecommenderTool
 from neo4j_semantic_layer.company_tool import CompanyTool
+from rag_demo.neo4j_semantic_layer.company_tool import CompanyTool
+from rag_demo.neo4j_semantic_layer.aggregation_tool import AggregationTool
 
 llm = ChatOpenAI(temperature=0, model="gpt-4")
 # tools = [InformationTool(), RecommenderTool(), MemoryTool()]
-tools = [CompanyTool()]
+# tools = [CompanyTool()]
+tools = load_tools(["human"])
+tools.extend([CompanyTool(), AggregationTool()])
 
 llm_with_tools = llm.bind(functions=[format_tool_to_openai_function(t) for t in tools])
 
