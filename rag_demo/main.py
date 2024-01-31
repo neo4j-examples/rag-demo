@@ -64,7 +64,7 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
       st.markdown(user_input)
     
     with st.chat_message("ai"):
-      with st.spinner('Running ...'):
+      with st.spinner('...'):
         message_placeholder = st.empty()
 
         # Vector only response
