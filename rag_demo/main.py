@@ -89,14 +89,15 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
         message_placeholder = st.empty()
 
         vgraph_response = rag_vector_graph.get_results(user_input)
-        content = f"##### Vector + Graph: \n" + vgraph_response['answer']
+        # content = f"##### Vector + Graph: \n" + vgraph_response['answer']
+        content = f"##### Vector + Graph: \n" + vgraph_response.content
 
         # Cite sources, if any
-        sources = vgraph_response['sources']
-        sources_split = sources.split(', ')
-        for source in sources_split:
-          if source != "" and source != "N/A" and source != "None":
-            content += f"\n - [{source}]({source})"
+        # sources = vgraph_response['sources']
+        # sources_split = sources.split(', ')
+        # for source in sources_split:
+        #   if source != "" and source != "N/A" and source != "None":
+        #     content += f"\n - [{source}]({source})"
 
         track("rag_demo", "ai_response", {"type": "vector_graph", "answer": content})
         new_message = {"role": "ai", "content": content}
