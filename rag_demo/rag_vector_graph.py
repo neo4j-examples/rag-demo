@@ -24,7 +24,7 @@ PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can 
 * If the context is empty, just respond None
 
 <question>
-{input}
+{question}
 </question>
 
 Here is the context:
@@ -34,7 +34,7 @@ Here is the context:
 
 Assistant:"""
 PROMPT = PromptTemplate(
-    input_variables=["input","context"], template=PROMPT_TEMPLATE
+    input_variables=["question","context"], template=PROMPT_TEMPLATE
 )
 
 EMBEDDING_MODEL = OpenAIEmbeddings()
@@ -50,6 +50,8 @@ graph = Neo4jGraph(
     password=password,
     sanitize = True
 )
+# TEMP
+llm_key = st.secrets["OPENAI_API_KEY"]
 
 @retry(tries=5, delay=5)
 def get_results(question):
@@ -66,6 +68,7 @@ def get_results(question):
     password=st.secrets["NEO4J_PASSWORD"]
     retrieval_query = """
     WITH node AS doc, score as similarity
+    ORDER BY similarity DESC LIMIT 5
     CALL { WITH doc
         OPTIONAL MATCH (prevDoc:Document)-[:NEXT]->(doc)
         OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Document)
@@ -81,21 +84,28 @@ def get_results(question):
         ORDER BY result.score DESC
         RETURN result as document, result.score as popularity, companyName, managers
     }
-    RETURN '##DocumentID: ' + coalesce(document.documentId,'') +'\n'+ 
-        '##Text: ' + coalesce(prevDoc.text+'\n','') + coalesce(document.text+'\n','') + coalesce(nextDoc.text+'\n','') +
-        '###Company: ' + coalesce(companyName,'') +'\n'+ '###Managers: ' + coalesce(managers,'') as text, 
-        similarity as score, {source: document.source} AS metadata
-    ORDER BY similarity ASC // so that best answers are the last
+    RETURN coalesce(prevDoc.text,'') + coalesce(document.text,'') + coalesce(nextDoc.text,'') as text, similarity as score, 
+        {documentId: coalesce(document.documentId,''), company: coalesce(companyName,''), managers: coalesce(managers,''), source: document.source} AS metadata
 """
-#     retrieval_query = """
+# retrieval_query = """
 #     WITH node AS doc, score as similarity
-#     CALL { with doc
-#         OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-#         WITH doc, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
-#         ORDER BY doc.score DESC
-#         RETURN doc as document, companyName, managers
-#     } 
-#     RETURN '##Document: ' + coalesce(document.documentId,'') +'\n'+ coalesce(document.text+'\n','') + 
+#     CALL { WITH doc
+#         OPTIONAL MATCH (prevDoc:Document)-[:NEXT]->(doc)
+#         OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Document)
+#         RETURN prevDoc, doc AS result, nextDoc
+#     }
+#     WITH result, prevDoc, nextDoc, similarity
+#     CALL {
+#         WITH result
+#         OPTIONAL MATCH (result)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+#         WITH result, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
+#         WHERE companyName IS NOT NULL OR managers > ""
+#         WITH result, companyName, managers
+#         ORDER BY result.score DESC
+#         RETURN result as document, result.score as popularity, companyName, managers
+#     }
+#     RETURN '##DocumentID: ' + coalesce(document.documentId,'') +'\n'+ 
+#         '##Text: ' + coalesce(prevDoc.text+'\n','') + coalesce(document.text+'\n','') + coalesce(nextDoc.text+'\n','') +
 #         '###Company: ' + coalesce(companyName,'') +'\n'+ '###Managers: ' + coalesce(managers,'') as text, 
 #         similarity as score, {source: document.source} AS metadata
 #     ORDER BY similarity ASC // so that best answers are the last
@@ -127,23 +137,24 @@ def get_results(question):
 
     retriever = store.as_retriever()
 
-    chain = RetrievalQAWithSourcesChain.from_chain_type(
-        ChatOpenAI(temperature=0), 
-        chain_type="stuff", 
-        retriever=retriever,
-        memory=MEMORY
-    )
+    context = retriever.get_relevant_documents(question)
+    print(context)
+    completePrompt = PROMPT.format(question=question, context=context)
+    print(completePrompt)
+    chat_llm = ChatOpenAI(openai_api_key=llm_key)
+    result = chat_llm.invoke(completePrompt)
+    # chain = RetrievalQAWithSourcesChain.from_chain_type(
+    #     ChatOpenAI(temperature=0), 
+    #     chain_type="stuff", 
+    #     retriever=retriever,
+    #     memory=MEMORY
+    # )
 
-    # print(question)
-    # print(PROMPT)
-    # TODO: We're not stuffing the prompt with the context documents.
-    # Should we send the prompt separately? or put the question into it and send that instead?
-
-    result = chain.invoke({
-        "question": question},
-        prompt=PROMPT,
-        return_only_outputs = True,
-    )
+    # result = chain.invoke({
+    #     "question": question},
+    #     prompt=PROMPT,
+    #     return_only_outputs = True,
+    # )
 
     print(f'result: {result}')
     # Will return a dict with keys: answer, sources

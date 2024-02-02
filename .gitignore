@@ -11,3 +11,6 @@ __pycache__
 # UI file
 .env
 secrets.toml
+
+# Dependency managers
+*.lock
