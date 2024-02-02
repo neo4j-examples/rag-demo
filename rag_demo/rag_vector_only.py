@@ -1,16 +1,12 @@
-from langchain.chains import GraphCypherQAChain
-from langchain_community.graphs import Neo4jGraph
-from langchain.prompts.prompt import PromptTemplate
 from langchain.vectorstores.neo4j_vector import Neo4jVector
-from langchain.chains import RetrievalQAWithSourcesChain
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains.conversation.memory import ConversationBufferMemory
 from retry import retry
-from timeit import default_timer as timer
 import streamlit as st
-from neo4j_driver import run_query
 from json import loads, dumps
-    
+
+from rag import generate_chain
 
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
 * Answer the question STRICTLY based on the context provided in JSON below.
@@ -23,7 +19,7 @@ PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can 
 * If the context is empty, just respond None
 
 <question>
-{input}
+{question}
 </question>
 
 Here is the context:
@@ -32,26 +28,26 @@ Here is the context:
 </context>
 
 Assistant:"""
-PROMPT = PromptTemplate(
-    input_variables=["input","context"], template=PROMPT_TEMPLATE
-)
+PROMPT = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
 
 EMBEDDING_MODEL = OpenAIEmbeddings()
-MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer', return_messages=True)
+MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer',
+                                  return_messages=True)
+
 
 def df_to_context(df):
     result = df.to_json(orient="records")
     parsed = loads(result)
     return dumps(parsed)
 
+
 @retry(tries=5, delay=5)
 def get_results(question):
-
     index_name = "form_10k_chunks"
     node_property_name = "textEmbedding"
-    url=st.secrets["NEO4J_URI"]
-    username=st.secrets["NEO4J_USERNAME"]
-    password=st.secrets["NEO4J_PASSWORD"]  
+    url = st.secrets["NEO4J_URI"]
+    username = st.secrets["NEO4J_USERNAME"]
+    password = st.secrets["NEO4J_PASSWORD"]
 
     try:
         store = Neo4jVector.from_existing_index(
@@ -75,22 +71,10 @@ def get_results(question):
         )
 
     retriever = store.as_retriever()
+    chat_llm = ChatOpenAI(temperature=0)
+    chain = generate_chain(retriever, chat_llm, PROMPT)
 
-    chain = RetrievalQAWithSourcesChain.from_chain_type(
-        ChatOpenAI(temperature=0), 
-        chain_type="stuff", 
-        retriever=retriever,
-        memory=MEMORY
-    )
-
-    result = chain.invoke({
-        "question": question},
-        prompt=PROMPT,
-        return_only_outputs = True
-    )
+    result = chain.invoke({"question": question})
 
     print(f'result: {result}')
-    # Will return a dict with keys: answer, sources
     return result
-
-

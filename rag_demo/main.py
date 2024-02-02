@@ -20,6 +20,11 @@ if "SESSION_ID" not in st.session_state:
     "appStarted",
     {})
 
+st.set_page_config(
+    page_title="Neo4j RAG Demo",
+    page_icon="static/logo-mark-fullcolor-CMYK-transBG.png"
+)
+
 set_llm_cache(InMemoryCache())
 
 st.markdown(f"""
@@ -69,14 +74,7 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
 
         # Vector only response
         vector_response = rag_vector_only.get_results(user_input)
-        content = f"##### Vector only: \n" + vector_response['answer']
-
-        # Cite sources, if any
-        sources = vector_response['sources']
-        sources_split = sources.split(', ')
-        for source in sources_split:
-          if source != "" and source != "N/A" and source != "None":
-            content += f"\n - [{source}]({source})"
+        content = f"##### Vector only: \n" + vector_response
 
         track("rag_demo", "ai_response", {"type": "vector", "answer": content})
         new_message = {"role": "ai", "content": content}
@@ -90,7 +88,7 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
 
         vgraph_response = rag_vector_graph.get_results(user_input)
         # content = f"##### Vector + Graph: \n" + vgraph_response['answer']
-        content = f"##### Vector + Graph: \n" + vgraph_response.content
+        content = f"##### Vector + Graph: \n" + vgraph_response
 
         # Cite sources, if any
         # sources = vgraph_response['sources']

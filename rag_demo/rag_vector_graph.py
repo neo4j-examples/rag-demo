@@ -1,7 +1,12 @@
+from operator import itemgetter
+
 from langchain.chains import GraphCypherQAChain
 from langchain_community.graphs import Neo4jGraph
 from langchain.prompts.prompt import PromptTemplate
 from langchain.llms.bedrock import Bedrock
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableParallel
 from retry import retry
 from timeit import default_timer as timer
 import streamlit as st
@@ -12,6 +17,8 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.vectorstores.neo4j_vector import Neo4jVector
 from langchain.chains import RetrievalQAWithSourcesChain
 from langchain.chains.conversation.memory import ConversationBufferMemory
+
+from rag import generate_chain
 
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
 * Answer the question STRICTLY based on the context provided in JSON below.
@@ -33,12 +40,25 @@ Here is the context:
 </context>
 
 Assistant:"""
-PROMPT = PromptTemplate(
-    input_variables=["question","context"], template=PROMPT_TEMPLATE
-)
+PROMPT = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+# PROMPT_TEMPLATE = '''You are a Financial expert with SEC filings. A user is wondering "{question}".
+#
+# Please answer the questions only based on the context below.
+# * Do not assume or retrieve any information outside of the context
+# * Use three sentences maximum and keep the answer concise
+# * Think step by step before answering.
+# * Do not return helpful or extra text or apologies
+# * Just return summary to the user. DO NOT start with Here is a summary
+# * List the results in rich text format if there are more than one results
+# * If the context is empty, just respond None
+#
+# Here is the context:
+# {context}
+# '''
 
 EMBEDDING_MODEL = OpenAIEmbeddings()
-MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer', return_messages=True)
+MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer',
+                                  return_messages=True)
 
 url = st.secrets["NEO4J_URI"]
 username = st.secrets["NEO4J_USERNAME"]
@@ -48,14 +68,14 @@ graph = Neo4jGraph(
     url=url,
     username=username,
     password=password,
-    sanitize = True
+    sanitize=True
 )
 # TEMP
 llm_key = st.secrets["OPENAI_API_KEY"]
 
-@retry(tries=5, delay=5)
-def get_results(question):
 
+@retry(tries=5, delay=5)
+def get_results(question: str):
     # TODO: Update index and node property names to reflect the embedding origin LLM,
     # ie "document_text_openai" index and "text_openai_embedding"
     # Currently the try-except block below only works with small datasets, it needs to be replaced 
@@ -63,12 +83,12 @@ def get_results(question):
 
     index_name = "form_10k_chunks"
     node_property_name = "textEmbedding"
-    url=st.secrets["NEO4J_URI"]
-    username=st.secrets["NEO4J_USERNAME"]
-    password=st.secrets["NEO4J_PASSWORD"]
+    url = st.secrets["NEO4J_URI"]
+    username = st.secrets["NEO4J_USERNAME"]
+    password = st.secrets["NEO4J_PASSWORD"]
     retrieval_query = """
     WITH node AS doc, score as similarity
-    ORDER BY similarity DESC LIMIT 5
+    ORDER BY similarity DESC LIMIT 20
     CALL { WITH doc
         OPTIONAL MATCH (prevDoc:Document)-[:NEXT]->(doc)
         OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Document)
@@ -87,31 +107,6 @@ def get_results(question):
     RETURN coalesce(prevDoc.text,'') + coalesce(document.text,'') + coalesce(nextDoc.text,'') as text, similarity as score, 
         {documentId: coalesce(document.documentId,''), company: coalesce(companyName,''), managers: coalesce(managers,''), source: document.source} AS metadata
 """
-# retrieval_query = """
-#     WITH node AS doc, score as similarity
-#     CALL { WITH doc
-#         OPTIONAL MATCH (prevDoc:Document)-[:NEXT]->(doc)
-#         OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Document)
-#         RETURN prevDoc, doc AS result, nextDoc
-#     }
-#     WITH result, prevDoc, nextDoc, similarity
-#     CALL {
-#         WITH result
-#         OPTIONAL MATCH (result)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-#         WITH result, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
-#         WHERE companyName IS NOT NULL OR managers > ""
-#         WITH result, companyName, managers
-#         ORDER BY result.score DESC
-#         RETURN result as document, result.score as popularity, companyName, managers
-#     }
-#     RETURN '##DocumentID: ' + coalesce(document.documentId,'') +'\n'+ 
-#         '##Text: ' + coalesce(prevDoc.text+'\n','') + coalesce(document.text+'\n','') + coalesce(nextDoc.text+'\n','') +
-#         '###Company: ' + coalesce(companyName,'') +'\n'+ '###Managers: ' + coalesce(managers,'') as text, 
-#         similarity as score, {source: document.source} AS metadata
-#     ORDER BY similarity ASC // so that best answers are the last
-# """
-
-
     try:
         store = Neo4jVector.from_existing_index(
             embedding=EMBEDDING_MODEL,
@@ -136,26 +131,10 @@ def get_results(question):
         )
 
     retriever = store.as_retriever()
+    chat_llm = ChatOpenAI(temperature=0)
+    chain = generate_chain(retriever, chat_llm, PROMPT)
 
-    context = retriever.get_relevant_documents(question)
-    print(context)
-    completePrompt = PROMPT.format(question=question, context=context)
-    print(completePrompt)
-    chat_llm = ChatOpenAI(openai_api_key=llm_key)
-    result = chat_llm.invoke(completePrompt)
-    # chain = RetrievalQAWithSourcesChain.from_chain_type(
-    #     ChatOpenAI(temperature=0), 
-    #     chain_type="stuff", 
-    #     retriever=retriever,
-    #     memory=MEMORY
-    # )
-
-    # result = chain.invoke({
-    #     "question": question},
-    #     prompt=PROMPT,
-    #     return_only_outputs = True,
-    # )
+    result = chain.invoke({"question": question})
 
     print(f'result: {result}')
-    # Will return a dict with keys: answer, sources
     return result
