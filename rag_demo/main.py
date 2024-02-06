@@ -9,6 +9,7 @@ from timeit import default_timer as timer
 from PIL import Image
 from langchain.globals import set_llm_cache
 from langchain.cache import InMemoryCache
+from langchain.callbacks import HumanApprovalCallbackHandler
 
 from analytics import track
 from streamlit_feedback import streamlit_feedback
@@ -45,6 +46,17 @@ user_placeholder = st.empty()
 # Initial images
 schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1705091904/schema_e8zkkx.png"
 langchain_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
+
+def _approve(_input: str) -> bool:
+    if _input == "echo 'Hello World'":
+        return True
+    msg = (
+        "Do you approve of the following input"
+        "Anything except 'Y'/'Yes' (case-insensitive) will be treated as a no"
+    )
+    msg += "\n\n" + _input + "\n"
+    resp = input(msg)
+    return resp.lower() in ("yes", "y")
 
 # Initialize message history
 if "messages" not in st.session_state:
@@ -114,9 +126,10 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
 
       # Agent response
       with st.spinner('Running agent...'):
+        callbacks = [HumanApprovalCallbackHandler(approve=_approve)]
         message_placeholder = st.empty()
 
-        agent_response = neo4j_semantic_agent.invoke({"input":user_input})
+        agent_response = neo4j_semantic_agent.invoke({"input":user_input}, callbacks=callbacks)
         print(agent_response)
 
         content = f"##### Agent: \n" + agent_response['output']

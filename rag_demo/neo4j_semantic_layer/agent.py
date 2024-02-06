@@ -20,9 +20,9 @@ from rag_demo.neo4j_semantic_layer.aggregation_tool import AggregationTool
 
 llm = ChatOpenAI(temperature=0, model="gpt-4")
 # tools = [InformationTool(), RecommenderTool(), MemoryTool()]
-# tools = [CompanyTool()]
-tools = load_tools(["human"])
-tools.extend([CompanyTool(), ManagerTool(), AggregationTool()])
+tools = [AggregationTool()]
+# tools = load_tools(["human"])
+# tools.extend([CompanyTool(), ManagerTool(), AggregationTool()])
 
 llm_with_tools = llm.bind(functions=[format_tool_to_openai_function(t) for t in tools])
 

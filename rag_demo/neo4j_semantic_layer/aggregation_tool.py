@@ -101,7 +101,7 @@ class AggregationInput(BaseModel):
 
 class AggregationTool(BaseTool):
     name = "AggregationTool"
-    description = "useful for when a user is searching any statistics like median, average, max about companies or managers"
+    description = "useful for questions about statistics like counts, totals, median, average, max about companies or managers"
     args_schema: Type[BaseModel] = AggregationInput
 
     def _run(
