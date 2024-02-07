@@ -62,7 +62,7 @@ def get_results(question):
     # with a large node count variation
 
     index_name = "form_10k_chunks"
-    node_property_name = "textEmbedding"
+    node_property_name = "textopenaiembedding"
     url=st.secrets["NEO4J_URI"]
     username=st.secrets["NEO4J_USERNAME"]
     password=st.secrets["NEO4J_PASSWORD"]
@@ -70,14 +70,14 @@ def get_results(question):
     WITH node AS doc, score as similarity
     ORDER BY similarity DESC LIMIT 5
     CALL { WITH doc
-        OPTIONAL MATCH (prevDoc:Document)-[:NEXT]->(doc)
-        OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Document)
+        OPTIONAL MATCH (prevDoc:Chunk)-[:NEXT]->(doc)
+        OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Chunk)
         RETURN prevDoc, doc AS result, nextDoc
     }
     WITH result, prevDoc, nextDoc, similarity
     CALL {
         WITH result
-        OPTIONAL MATCH (result)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+        OPTIONAL MATCH (result)-[:PART_OF]->(:Form)<-[:FILED]-(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
         WITH result, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
         WHERE companyName IS NOT NULL OR managers > ""
         WITH result, companyName, managers
@@ -85,7 +85,7 @@ def get_results(question):
         RETURN result as document, result.score as popularity, companyName, managers
     }
     RETURN coalesce(prevDoc.text,'') + coalesce(document.text,'') + coalesce(nextDoc.text,'') as text, similarity as score, 
-        {documentId: coalesce(document.documentId,''), company: coalesce(companyName,''), managers: coalesce(managers,''), source: document.source} AS metadata
+        {documentId: coalesce(document.chunkId,''), company: coalesce(companyName,''), managers: coalesce(managers,''), source: document.source} AS metadata
 """
 # retrieval_query = """
 #     WITH node AS doc, score as similarity
@@ -111,6 +111,7 @@ def get_results(question):
 #     ORDER BY similarity ASC // so that best answers are the last
 # """
 
+    print(f'rag_vector_graph: Using Neo4j creds: ur: {url}, username: {username}, password: {password}')
 
     try:
         store = Neo4jVector.from_existing_index(
@@ -129,32 +130,33 @@ def get_results(question):
             username=username,
             password=password,
             index_name=index_name,
-            node_label="Document",
+            node_label="Chunk",
             text_node_properties=["text"],
             embedding_node_property=node_property_name,
-            retrieval_query=retrieval_query,
+            # retrieval_query=retrieval_query,
         )
 
     retriever = store.as_retriever()
 
     context = retriever.get_relevant_documents(question)
-    print(context)
+    print(f'Context: {context}')
     completePrompt = PROMPT.format(question=question, context=context)
-    print(completePrompt)
-    chat_llm = ChatOpenAI(openai_api_key=llm_key)
-    result = chat_llm.invoke(completePrompt)
-    # chain = RetrievalQAWithSourcesChain.from_chain_type(
-    #     ChatOpenAI(temperature=0), 
-    #     chain_type="stuff", 
-    #     retriever=retriever,
-    #     memory=MEMORY
-    # )
+    print(f'CompletePrompt: {completePrompt}')
+    # chat_llm = ChatOpenAI(openai_api_key=llm_key)
+    # result = chat_llm.invoke(completePrompt)
 
-    # result = chain.invoke({
-    #     "question": question},
-    #     prompt=PROMPT,
-    #     return_only_outputs = True,
-    # )
+    chain = RetrievalQAWithSourcesChain.from_chain_type(
+        ChatOpenAI(temperature=0), 
+        chain_type="stuff", 
+        retriever=retriever,
+        memory=MEMORY
+    )
+
+    result = chain.invoke({
+        "question": question},
+        prompt=completePrompt,
+        return_only_outputs = True,
+    )
 
     print(f'result: {result}')
     # Will return a dict with keys: answer, sources

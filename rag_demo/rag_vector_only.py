@@ -48,12 +48,16 @@ def df_to_context(df):
 def get_results(question):
 
     index_name = "form_10k_chunks"
-    node_property_name = "textEmbedding"
+    node_property_name = "textopenaiembedding"
     url=st.secrets["NEO4J_URI"]
     username=st.secrets["NEO4J_USERNAME"]
     password=st.secrets["NEO4J_PASSWORD"]  
 
+    print(f'rag_vector_only: Using Neo4j creds: ur: {url}, username: {username}, password: {password}')
+
+    store = None
     try:
+        print(f'Attempting to retrieve existing vector index: {index_name}...')
         store = Neo4jVector.from_existing_index(
             embedding=EMBEDDING_MODEL,
             url=url,
@@ -62,17 +66,24 @@ def get_results(question):
             index_name=index_name,
             embedding_node_property=node_property_name,
         )
+        print(f'Using existing index: {index_name}')
     except:
-        store = Neo4jVector.from_existing_graph(
-            embedding=EMBEDDING_MODEL,
-            url=url,
-            username=username,
-            password=password,
-            index_name=index_name,
-            node_label="Document",
-            text_node_properties=["text"],
-            embedding_node_property=node_property_name,
-        )
+        print(f'No existing index found. Attempting to create a new vector index named {index_name}...')
+        try:
+            store = Neo4jVector.from_existing_graph(
+                embedding=EMBEDDING_MODEL,
+                url=url,
+                username=username,
+                password=password,
+                index_name=index_name,
+                node_label="Chunk",
+                text_node_properties=["text"],
+                embedding_node_property=node_property_name,
+            )
+            print(f'Created new index: {index_name}')
+        except Exception as e:
+            print(f'Failed to create Neo4jVector: {e}')
+            return None
 
     retriever = store.as_retriever()
 

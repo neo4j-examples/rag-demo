@@ -69,6 +69,7 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
 
         # Vector only response
         vector_response = rag_vector_only.get_results(user_input)
+        # TODO: Update this to handle empty responses
         content = f"##### Vector only: \n" + vector_response['answer']
 
         # Cite sources, if any
@@ -85,25 +86,25 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
       message_placeholder.markdown(content)
 
       # Vector+Graph response (styling results as separate messages)
-      with st.spinner('Running ...'):
-        message_placeholder = st.empty()
+      # with st.spinner('Running ...'):
+      #   message_placeholder = st.empty()
 
-        vgraph_response = rag_vector_graph.get_results(user_input)
-        # content = f"##### Vector + Graph: \n" + vgraph_response['answer']
-        content = f"##### Vector + Graph: \n" + vgraph_response.content
+      #   vgraph_response = rag_vector_graph.get_results(user_input)
+      #   # content = f"##### Vector + Graph: \n" + vgraph_response['answer']
+      #   content = f"##### Vector + Graph: \n" + vgraph_response["answer"]
 
-        # Cite sources, if any
-        # sources = vgraph_response['sources']
-        # sources_split = sources.split(', ')
-        # for source in sources_split:
-        #   if source != "" and source != "N/A" and source != "None":
-        #     content += f"\n - [{source}]({source})"
+      #   # Cite sources, if any
+      #   sources = vgraph_response['sources']
+      #   sources_split = sources.split(', ')
+      #   for source in sources_split:
+      #     if source != "" and source != "N/A" and source != "None":
+      #       content += f"\n - [{source}]({source})"
 
-        track("rag_demo", "ai_response", {"type": "vector_graph", "answer": content})
-        new_message = {"role": "ai", "content": content}
-        st.session_state.messages.append(new_message)
+      #   track("rag_demo", "ai_response", {"type": "vector_graph", "answer": content})
+      #   new_message = {"role": "ai", "content": content}
+      #   st.session_state.messages.append(new_message)
 
-      message_placeholder.markdown(content)
+      # message_placeholder.markdown(content)
 
       # # Alternative: style results as single combined response message
       # vector_response = rag_vector_graph.get_results(user_input)
