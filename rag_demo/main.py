@@ -1,18 +1,19 @@
 import streamlit as st
-# from streamlit_chat import message
-import streamlit.components.v1 as components
-from streamlit.components.v1 import html
 
 import rag_vector_only
 import rag_vector_graph
-from timeit import default_timer as timer
-from PIL import Image
+import rag_graph
 from langchain.globals import set_llm_cache
 from langchain.cache import InMemoryCache
+from langchain_community.callbacks import HumanApprovalCallbackHandler
 
 from analytics import track
 from streamlit_feedback import streamlit_feedback
 from rag_demo.text import title
+
+# from neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
+from rag_demo.neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
+import logging
 
 # Analytics tracking
 if "SESSION_ID" not in st.session_state:
@@ -34,6 +35,17 @@ user_placeholder = st.empty()
 schema_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1705091904/schema_e8zkkx.png"
 langchain_img_path = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
 
+def _approve(_input: str) -> bool:
+    if _input == "echo 'Hello World'":
+        return True
+    msg = (
+        "Do you approve of the following input"
+        "Anything except 'Y'/'Yes' (case-insensitive) will be treated as a no"
+    )
+    msg += "\n\n" + _input + "\n"
+    resp = input(msg)
+    return resp.lower() in ("yes", "y")
+
 # Initialize message history
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -41,6 +53,13 @@ if "messages" not in st.session_state:
       {"role": "ai", "content": f"""This the schema in which the EDGAR filings are stored in Neo4j: \n <img style="width: 70%; height: auto;" src="{schema_img_path}"/>"""}, 
       {"role": "ai", "content": f"""This is how the Chatbot flow goes: \n <img style="width: 70%; height: auto;" src="{langchain_img_path}"/>"""}
     ]
+
+# RAG Options
+ENABLE_VECTOR_ONLY = True
+ENABLE_VECTOR_GRAPH = False
+ENABLE_GRAPH_ONLY = False
+ENABLE_AGENT = True
+
 # Display chat messages from history on app rerun
 with placeholder.container():
   for message in st.session_state.messages:
@@ -54,65 +73,93 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
       st.markdown(user_input)
-    
-    with st.chat_message("ai"):
-      with st.spinner('...'):
-        message_placeholder = st.empty()
 
-        # Vector only response
-        vector_response = rag_vector_only.get_results(user_input)
-        # TODO: Update this to handle empty responses
-        content = f"##### Vector only: \n" + vector_response['answer']
+    # Vector only response
+    if ENABLE_VECTOR_ONLY:
+      with st.chat_message("ai"):
+        with st.spinner('Running vector RAG...'):
+          message_placeholder = st.empty()
 
-        # Cite sources, if any
-        sources = vector_response['sources']
-        sources_split = sources.split(', ')
-        for source in sources_split:
-          if source != "" and source != "N/A" and source != "None":
-            content += f"\n - [{source}]({source})"
+          vector_response = rag_vector_only.get_results(user_input)
+          # TODO: Update this to handle empty responses
+          content = f"##### Vector only: \n" + vector_response['answer']
 
-        track("rag_demo", "ai_response", {"type": "vector", "answer": content})
-        new_message = {"role": "ai", "content": content}
-        st.session_state.messages.append(new_message)
+          # Cite sources, if any
+          sources = vector_response['sources']
+          sources_split = sources.split(', ')
+          for source in sources_split:
+            if source != "" and source != "N/A" and source != "None":
+              content += f"\n - [{source}]({source})"
 
-      message_placeholder.markdown(content)
+          track("rag_demo", "ai_response", {"type": "vector", "answer": content})
+          new_message = {"role": "ai", "content": content}
+          st.session_state.messages.append(new_message)
 
-      # Vector+Graph response (styling results as separate messages)
-      # with st.spinner('Running ...'):
-      #   message_placeholder = st.empty()
+        message_placeholder.markdown(content)
 
-      #   vgraph_response = rag_vector_graph.get_results(user_input)
-      #   # content = f"##### Vector + Graph: \n" + vgraph_response['answer']
-      #   content = f"##### Vector + Graph: \n" + vgraph_response["answer"]
+      if ENABLE_VECTOR_GRAPH:
+        # Vector+Graph response (styling results as separate messages)
+        # with st.spinner('Running ...'):
+        #   message_placeholder = st.empty()
+        with st.spinner('Running Vector + Graph RAG...'):
+          message_placeholder = st.empty()
 
-      #   # Cite sources, if any
-      #   sources = vgraph_response['sources']
-      #   sources_split = sources.split(', ')
-      #   for source in sources_split:
-      #     if source != "" and source != "N/A" and source != "None":
-      #       content += f"\n - [{source}]({source})"
+          vgraph_response = rag_vector_graph.get_results(user_input)
+          content = f"##### Vector + Graph: \n" + vgraph_response["answer"]
 
-      #   track("rag_demo", "ai_response", {"type": "vector_graph", "answer": content})
-      #   new_message = {"role": "ai", "content": content}
-      #   st.session_state.messages.append(new_message)
+        #   # Cite sources, if any
+          sources = vgraph_response['sources']
+          sources_split = sources.split(', ')
+          for source in sources_split:
+            if source != "" and source != "N/A" and source != "None":
+              content += f"\n - [{source}]({source})"
 
-      # message_placeholder.markdown(content)
+          # Cite sources, if any
+          try:
+            sources = vgraph_response['sources']
+            sources_split = sources.split(', ')
+            for source in sources_split:
+              if source != "" and source != "N/A" and source != "None":
+                content += f"\n - [{source}]({source})"
+          except Exception as e:
+            logging.error(f'Problem extracting sources: {e}')
 
-      # # Alternative: style results as single combined response message
-      # vector_response = rag_vector_graph.get_results(user_input)
-      # content += f"\n ##### Vector + Graph: \n" + vector_response['answer']
+          track("rag_demo", "ai_response", {"type": "vector_graph", "answer": content})
+          new_message = {"role": "ai", "content": content}
+          st.session_state.messages.append(new_message)
+        
+        message_placeholder.markdown(content)
 
-      # # Cite sources, if any
-      # sources = vector_response['sources']
-      # sources_split = sources.split(', ')
-      # for source in sources_split:
-      #   if source != "" and source != "N/A" and source != "None":
-      #     content += f"\n - [{source}]({source})"
+      if ENABLE_GRAPH_ONLY:
+        # Graph response (styling results as separate messages)
+        with st.spinner('Running Graph RAG...'):
+          message_placeholder = st.empty()
 
-      # new_message = {"role": "ai", "content": content}
-      # st.session_state.messages.append(new_message)
+          vgraph_response = rag_graph.get_results(user_input)
+          content = f"##### Graph Only: \n" + vgraph_response["result"]
 
-      # message_placeholder.markdown(content)
+          track("rag_demo", "ai_response", {"type": "graph_only", "answer": content})
+          new_message = {"role": "ai", "content": content}
+          st.session_state.messages.append(new_message)
+
+        message_placeholder.markdown(content)
+
+      if ENABLE_AGENT:
+        # Agent response
+        with st.spinner('Running agent...'):
+          callbacks = [HumanApprovalCallbackHandler(approve=_approve)]
+          message_placeholder = st.empty()
+
+          agent_response = neo4j_semantic_agent.invoke({"input":user_input}, callbacks=callbacks)
+          print(agent_response)
+
+          content = f"##### Agent: \n" + agent_response['output']
+
+          track("rag_demo", "ai_response", {"type": "agent", "answer": content})
+          new_message = {"role": "ai", "content": content}
+          st.session_state.messages.append(new_message)
+
+        message_placeholder.markdown(content)
     
   emoji_feedback = st.empty()
 
