@@ -14,7 +14,25 @@ from langchain.chains.conversation.memory import ConversationBufferMemory
 
 from services import llm, embedding_model
 
-PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
+PROMPT_TEMPLATE ="""
+You are answering questions about SEC filings from the information provided in the <context> section below.
+Always respond with information from the <context> section.
+Do not add data from external sources.
+If you are not sure about an answer, still state the information and say that you are unsure.
+
+<question>
+{question}
+</question>
+
+Here is the context:
+<context>
+{context}
+</context>
+
+Assistant:
+
+"""
+xPROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
 * Answer the question STRICTLY based on the context provided in JSON below.
 * Do not assume or retrieve any information outside of the context 
 * Use three sentences maximum and keep the answer concise
@@ -45,16 +63,16 @@ url = st.secrets["NEO4J_URI"]
 username = st.secrets["NEO4J_USERNAME"]
 password = st.secrets["NEO4J_PASSWORD"]
 
-graph = Neo4jGraph(
-    url=url,
-    username=username,
-    password=password,
-    sanitize = True
-)
+# graph = Neo4jGraph(
+#     url=url,
+#     username=username,
+#     password=password,
+#     sanitize = True
+# )
 # TEMP
 llm_key = st.secrets["OPENAI_API_KEY"]
 
-@retry(tries=5, delay=5)
+# @retry(tries=1, delay=30)
 def get_results(question):
 
     # TODO: Update index and node property names to reflect the embedding origin LLM,
@@ -69,7 +87,7 @@ def get_results(question):
     password=st.secrets["NEO4J_PASSWORD"]
     retrieval_query = """
     WITH node AS doc, score as similarity
-    ORDER BY similarity DESC LIMIT 5
+    ORDER BY similarity DESC LIMIT 3
     CALL { WITH doc
         OPTIONAL MATCH (prevDoc:Chunk)-[:NEXT]->(doc)
         OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Chunk)
@@ -83,10 +101,10 @@ def get_results(question):
         WHERE companyName IS NOT NULL OR managers > ""
         WITH result, companyName, managers
         ORDER BY result.score DESC
-        RETURN result as document, result.score as popularity, companyName, managers
+        RETURN result as document, result.score as popularity, companyName, managers LIMIT 3
     }
     RETURN coalesce(prevDoc.text,'') + coalesce(document.text,'') + coalesce(nextDoc.text,'') as text, similarity as score, 
-        {documentId: coalesce(document.chunkId,''), company: coalesce(companyName,''), managers: coalesce(managers,''), source: document.source} AS metadata
+        {documentId: coalesce(document.chunkId,''), company: coalesce(companyName,''), managers: coalesce(managers,''), source: document.source} AS metadata LIMIT 3
 """
 # retrieval_query = """
 #     WITH node AS doc, score as similarity
@@ -142,7 +160,7 @@ def get_results(question):
     context = retriever.get_relevant_documents(question)
     print(f'Context: {context}')
     completePrompt = PROMPT.format(question=question, context=context)
-    print(f'CompletePrompt: {completePrompt}')
+    # print(f'CompletePrompt: {completePrompt}')
     # chat_llm = ChatOpenAI(openai_api_key=llm_key)
     # result = chat_llm.invoke(completePrompt)
 
@@ -150,7 +168,8 @@ def get_results(question):
         llm, 
         chain_type="stuff", 
         retriever=retriever,
-        memory=MEMORY
+        memory=MEMORY,
+        max_tokens_limit=2000
     )
 
     result = chain.invoke({
