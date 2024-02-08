@@ -3,16 +3,19 @@ import streamlit as st
 import rag_vector_only
 import rag_vector_graph
 import rag_graph
+import rag_agent
 from langchain.globals import set_llm_cache
 from langchain.cache import InMemoryCache
 from langchain_community.callbacks import HumanApprovalCallbackHandler
+from langchain_community.callbacks import StreamlitCallbackHandler
 
+import streamlit as st
 from analytics import track
 from streamlit_feedback import streamlit_feedback
 from rag_demo.text import title
 
-# from neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
-from rag_demo.neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
+from neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
+# from rag_demo.neo4j_semantic_layer import agent_executor as neo4j_semantic_agent
 import logging
 
 # Analytics tracking
@@ -55,10 +58,11 @@ if "messages" not in st.session_state:
     ]
 
 # RAG Options
-ENABLE_VECTOR_ONLY = True
+ENABLE_VECTOR_ONLY = False
 ENABLE_VECTOR_GRAPH = False
 ENABLE_GRAPH_ONLY = False
-ENABLE_AGENT = True
+ENABLE_AGENT = False
+ENABLE_SIMPLE_AGENT = True
 
 # Display chat messages from history on app rerun
 with placeholder.container():
@@ -75,8 +79,8 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
       st.markdown(user_input)
 
     # Vector only response
-    if ENABLE_VECTOR_ONLY:
-      with st.chat_message("ai"):
+    with st.chat_message("ai"):
+      if ENABLE_VECTOR_ONLY:
         with st.spinner('Running vector RAG...'):
           message_placeholder = st.empty()
 
@@ -136,6 +140,9 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
           message_placeholder = st.empty()
 
           vgraph_response = rag_graph.get_results(user_input)
+          if vgraph_response is None:
+            vgraph_response = {"result":"Could not find an answer"}
+
           content = f"##### Graph Only: \n" + vgraph_response["result"]
 
           track("rag_demo", "ai_response", {"type": "graph_only", "answer": content})
@@ -160,7 +167,33 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
           st.session_state.messages.append(new_message)
 
         message_placeholder.markdown(content)
-    
+
+      if ENABLE_SIMPLE_AGENT:
+        # Agent response
+        with st.spinner('Running simple agent...'):
+
+          message_placeholder = st.empty()
+
+          # st_callback = StreamlitCallbackHandler(st.container())
+
+          agent_response = rag_agent.get_results(
+            question=user_input
+            # callbacks=[st_callback]
+          )
+
+          if isinstance(agent_response, str) is False:
+            print(f'Agent response was not expected string type: {agent_response}')
+          if isinstance(agent_response, dict) is True:
+            print(f'Agent response was dict type: {agent_response}')
+
+          content = f"##### Simple Agent: \n" + agent_response
+
+          track("rag_demo", "ai_response", {"type": "simple_agent", "answer": content})
+          new_message = {"role": "ai", "content": content}
+          st.session_state.messages.append(new_message)
+
+        message_placeholder.markdown(content)
+
   emoji_feedback = st.empty()
 
   # Emoji feedback

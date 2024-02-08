@@ -11,7 +11,7 @@ import streamlit as st
 from neo4j_driver import run_query
 from json import loads, dumps
     
-from services import llm, embedding_model
+from rag_demo.services import llm, embedding_model
 
 PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
 * Answer the question STRICTLY based on the context provided in JSON below.

@@ -99,16 +99,21 @@ def get_results(question):
             model_name="gpt-4"
         ),
         graph=graph,
-        verbose=True, 
-        return_intermediate_steps = True,
+        # verbose=True, 
+        # return_intermediate_steps = True,
         return_direct = True
     )
 
-    result = chain.invoke({
-        "query": question},
-        prompt=CYPHER_GENERATION_PROMPT,
-        return_only_outputs = True,
-    )
+    result = None
+    try:
+        result = chain.invoke({
+            "query": question},
+            prompt=CYPHER_GENERATION_PROMPT,
+            return_only_outputs = True,
+        )
+    except Exception as e:
+        # Likely failed during an intermediate cypher call
+        print(f'Exception in get_results: {e}')
 
     print(f'result: {result}')
     # Will return a dict with keys: answer, sources
