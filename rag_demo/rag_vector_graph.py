@@ -25,7 +25,7 @@ PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can 
 * If the context is empty, just respond None
 
 <question>
-{input}
+{question}
 </question>
 
 Here is the context:
@@ -35,7 +35,7 @@ Here is the context:
 
 Assistant:"""
 PROMPT = PromptTemplate(
-    input_variables=["input","context"], template=PROMPT_TEMPLATE
+    input_variables=["question","context"], template=PROMPT_TEMPLATE
 )
 
 EMBEDDING_MODEL = embedding_model # OpenAIEmbeddings()
@@ -51,6 +51,8 @@ graph = Neo4jGraph(
     password=password,
     sanitize = True
 )
+# TEMP
+llm_key = st.secrets["OPENAI_API_KEY"]
 
 @retry(tries=5, delay=5)
 def get_results(question):
@@ -61,36 +63,56 @@ def get_results(question):
     # with a large node count variation
 
     index_name = "form_10k_chunks"
-    node_property_name = "textEmbedding"
+    node_property_name = "textopenaiembedding"
     url=st.secrets["NEO4J_URI"]
     username=st.secrets["NEO4J_USERNAME"]
     password=st.secrets["NEO4J_PASSWORD"]
     retrieval_query = """
     WITH node AS doc, score as similarity
-    CALL { with doc
-        OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-        WITH doc, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
-        ORDER BY doc.score DESC
-        RETURN doc as document, companyName, managers
-    } 
-    RETURN '##Document: ' + coalesce(document.documentId,'') +'\n'+ coalesce(document.text+'\n','') + 
-        '###Company: ' + coalesce(companyName,'') +'\n'+ '###Managers: ' + coalesce(managers,'') as text, 
-        similarity as score, {source: document.source} AS metadata
-    ORDER BY similarity ASC // so that best answers are the last
+    ORDER BY similarity DESC LIMIT 5
+    CALL { WITH doc
+        OPTIONAL MATCH (prevDoc:Chunk)-[:NEXT]->(doc)
+        OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Chunk)
+        RETURN prevDoc, doc AS result, nextDoc
+    }
+    WITH result, prevDoc, nextDoc, similarity
+    CALL {
+        WITH result
+        OPTIONAL MATCH (result)-[:PART_OF]->(:Form)<-[:FILED]-(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+        WITH result, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
+        WHERE companyName IS NOT NULL OR managers > ""
+        WITH result, companyName, managers
+        ORDER BY result.score DESC
+        RETURN result as document, result.score as popularity, companyName, managers
+    }
+    RETURN coalesce(prevDoc.text,'') + coalesce(document.text,'') + coalesce(nextDoc.text,'') as text, similarity as score, 
+        {documentId: coalesce(document.chunkId,''), company: coalesce(companyName,''), managers: coalesce(managers,''), source: document.source} AS metadata
 """
-#     retrieval_query = """
+# retrieval_query = """
 #     WITH node AS doc, score as similarity
-#     CALL { with doc
-#         OPTIONAL MATCH (doc)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
-#         WITH doc, company.name as companyName, collect(manager.managerName) as managers
-#         ORDER BY doc.score DESC
-#         RETURN doc as document, companyName, reduce(str='', manager IN managers | str + manager + '; ') as managersList
-#     } 
-#     RETURN coalesce('##Document: ' + document.documentId + '\n' + document.text + '\n### Company: ' + companyName + '\n### Managers: ' + managersList) as text, 
+#     CALL { WITH doc
+#         OPTIONAL MATCH (prevDoc:Document)-[:NEXT]->(doc)
+#         OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Document)
+#         RETURN prevDoc, doc AS result, nextDoc
+#     }
+#     WITH result, prevDoc, nextDoc, similarity
+#     CALL {
+#         WITH result
+#         OPTIONAL MATCH (result)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company), (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
+#         WITH result, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
+#         WHERE companyName IS NOT NULL OR managers > ""
+#         WITH result, companyName, managers
+#         ORDER BY result.score DESC
+#         RETURN result as document, result.score as popularity, companyName, managers
+#     }
+#     RETURN '##DocumentID: ' + coalesce(document.documentId,'') +'\n'+ 
+#         '##Text: ' + coalesce(prevDoc.text+'\n','') + coalesce(document.text+'\n','') + coalesce(nextDoc.text+'\n','') +
+#         '###Company: ' + coalesce(companyName,'') +'\n'+ '###Managers: ' + coalesce(managers,'') as text, 
 #         similarity as score, {source: document.source} AS metadata
 #     ORDER BY similarity ASC // so that best answers are the last
 # """
 
+    print(f'rag_vector_graph: Using Neo4j creds: ur: {url}, username: {username}, password: {password}')
 
     try:
         store = Neo4jVector.from_existing_index(
@@ -109,13 +131,20 @@ def get_results(question):
             username=username,
             password=password,
             index_name=index_name,
-            node_label="Document",
+            node_label="Chunk",
             text_node_properties=["text"],
             embedding_node_property=node_property_name,
-            retrieval_query=retrieval_query,
+            # retrieval_query=retrieval_query,
         )
 
     retriever = store.as_retriever()
+
+    context = retriever.get_relevant_documents(question)
+    print(f'Context: {context}')
+    completePrompt = PROMPT.format(question=question, context=context)
+    print(f'CompletePrompt: {completePrompt}')
+    # chat_llm = ChatOpenAI(openai_api_key=llm_key)
+    # result = chat_llm.invoke(completePrompt)
 
     chain = RetrievalQAWithSourcesChain.from_chain_type(
         llm, 
@@ -124,14 +153,9 @@ def get_results(question):
         memory=MEMORY
     )
 
-    # print(question)
-    # print(PROMPT)
-    # TODO: We're not stuffing the prompt with the context documents.
-    # Should we send the prompt separately? or put the question into it and send that instead?
-
     result = chain.invoke({
         "question": question},
-        prompt=PROMPT,
+        prompt=completePrompt,
         return_only_outputs = True,
     )
 
