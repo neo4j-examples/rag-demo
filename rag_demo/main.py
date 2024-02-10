@@ -4,7 +4,7 @@ from langchain.cache import InMemoryCache
 from langchain_community.callbacks import HumanApprovalCallbackHandler
 from langchain_community.callbacks import StreamlitCallbackHandler
 from streamlit_feedback import streamlit_feedback
-from rag_demo.constants import SCHEMA_IMG_PATH, LANGCHAIN_IMG_PATH, TITLE
+from constants import SCHEMA_IMG_PATH, LANGCHAIN_IMG_PATH, TITLE
 import logging
 import rag_agent
 import streamlit as st

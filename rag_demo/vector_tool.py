@@ -1,5 +1,5 @@
 from langchain.tools import tool
-from rag_demo.chains.vector_chain import get_results
+from vector_chain import get_results
 
 @tool("vector-tool")
 def vector_tool(query:str) -> str:

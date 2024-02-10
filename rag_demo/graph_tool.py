@@ -1,5 +1,5 @@
 from langchain.tools import tool
-from rag_demo.chains.graph_chain import get_results
+from graph_chain import get_results
 
 @tool("graph-tool")
 def graph_tool(query:str) -> str:
