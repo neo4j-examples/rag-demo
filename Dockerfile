@@ -3,6 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 COPY requirements.txt .
+COPY secrets.toml /app/.streamlit/secrets.toml
 RUN pip install -r requirements.txt
 
 COPY . .

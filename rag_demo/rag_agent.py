@@ -9,7 +9,7 @@ from rag_demo.tools.graph_tool import graph_tool
 from rag_demo.tools.vector_tool import vector_tool
 from retry import retry
 
-
+# Setup tools the agent will use
 llm = OpenAI(temperature=0)
 tools = load_tools([], llm=llm)
 tools = tools + [graph_tool, vector_tool]
@@ -32,18 +32,8 @@ tools = tools + [graph_tool, vector_tool]
 # executor = load_agent_executor(model, tools, verbose=True)
 # agent_executor = PlanAndExecute(planner=planner, executor=executor, verbose=True)
 
-# OPENAI TOOLS AGENT EXECUTOR
-# Requires model that can make use of additional parameters
-# prompt = hub.pull("hwchase17/openai-tools-agent")
-# agent = create_openai_tools_agent(llm, tools, prompt)
-# agent_executor = AgentExecutor(
-#     agent=agent, 
-#     tools=tools, 
-#     verbose=True)
-
 # REACT AGENT EXECUTOR - Streamlit handler doesn't seem to work with this option
 
-# 🤷 Where does this actually pull from? 
 prompt = hub.pull("hwchase17/react")
 
 # More on agent types: https://python.langchain.com/docs/modules/agents/agent_types/

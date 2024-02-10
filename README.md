@@ -18,7 +18,9 @@ pipenv run streamlit run rag_demo/main.py
 
 ## GCloud Update
 First Install gcloud CLI, then:
-```
+1. Update the requirements.txt file with `poetry export --without-hashes --format=requirements.txt > requirements.txt`
+2. Make sure a copy of the streamlit secrets.toml file is in the root folder path 
+3. Run the following terminal commands
 gcloud auth login
 gcloud init
 gcloud builds submit --tag gcr.io/<gcloud_project_id>/streamlit-app

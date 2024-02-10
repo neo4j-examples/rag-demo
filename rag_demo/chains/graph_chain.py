@@ -36,7 +36,6 @@ MATCH (co:Company)-[fi]-(f:Form)-[po]-(c:Chunk)
 WHERE toLower(c.text) CONTAINS "chicken"
 RETURN DISTINCT count(c) as chunks, co.name ORDER BY chunks desc
 
-
 The question is:
 {question}"""
 
@@ -44,7 +43,6 @@ CYPHER_GENERATION_PROMPT = PromptTemplate(
     input_variables=["schema", "question"], template=CYPHER_GENERATION_TEMPLATE
 )
 
-GRAPH_INVOCATION_KEY = "query"
 EMBEDDING_MODEL = OpenAIEmbeddings()
 MEMORY = ConversationBufferMemory(
     memory_key="chat_history", 
@@ -58,7 +56,6 @@ password = st.secrets["NEO4J_PASSWORD"]
 openai_key = st.secrets["OPENAI_API_KEY"]
 llm_key = st.secrets["OPENAI_API_KEY"]
 
-
 graph = Neo4jGraph(
     url=url,
     username=username,
@@ -66,6 +63,7 @@ graph = Neo4jGraph(
     sanitize = True
 )
 
+# Official API doc for GraphCypherQAChain at: https://api.python.langchain.com/en/latest/chains/langchain.chains.graph_qa.base.GraphQAChain.html#
 graph_chain = GraphCypherQAChain.from_llm(
     cypher_llm=ChatOpenAI(
         openai_api_key=openai_key, 
@@ -108,8 +106,9 @@ def get_results(question) -> str:
             return_only_outputs = True,
         )
     except Exception as e:
-        # Likely failed during an intermediate cypher call
-        logging.error(f'Exception in get_results: {e}')
+        # Occurs when the chain can not generate a cypher statement
+        # for the question with the given database schema
+        logging.warning(f'Handled exception running graphCypher chain: {e}')
 
     logging.debug(f'chain_result: {chain_result}')
 

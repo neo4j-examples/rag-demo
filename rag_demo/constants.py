@@ -1,4 +1,4 @@
-SCHEMA_IMG_PATH = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1705091904/schema_e8zkkx.png"
+SCHEMA_IMG_PATH = "https://res.cloudinary.com/dk0tizgdn/image/upload/c_scale,w_600/v1707530867/rag_demo_data_model_20240209_1800_lbw2qj.png"
 LANGCHAIN_IMG_PATH = "https://res.cloudinary.com/dk0tizgdn/image/upload/v1704991084/langchain-neo4j_cy2mky.png"
 
 # Has a white border around logo

@@ -32,7 +32,6 @@ VECTOR_PROMPT = PromptTemplate(
     input_variables=["input","context"], template=VECTOR_PROMPT_TEMPLATE
 )
 
-VECTOR_INVOCATION_KEY = "question"
 EMBEDDING_MODEL = OpenAIEmbeddings()
 MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer', return_messages=True)
 
