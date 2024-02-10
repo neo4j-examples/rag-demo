@@ -44,6 +44,7 @@ CYPHER_GENERATION_PROMPT = PromptTemplate(
     input_variables=["schema", "question"], template=CYPHER_GENERATION_TEMPLATE
 )
 
+GRAPH_INVOCATION_KEY = "query"
 EMBEDDING_MODEL = OpenAIEmbeddings()
 MEMORY = ConversationBufferMemory(
     memory_key="chat_history", 
@@ -57,11 +58,30 @@ password = st.secrets["NEO4J_PASSWORD"]
 openai_key = st.secrets["OPENAI_API_KEY"]
 llm_key = st.secrets["OPENAI_API_KEY"]
 
+
 graph = Neo4jGraph(
     url=url,
     username=username,
     password=password,
     sanitize = True
+)
+
+graph_chain = GraphCypherQAChain.from_llm(
+    cypher_llm=ChatOpenAI(
+        openai_api_key=openai_key, 
+        temperature=0, 
+        model_name="gpt-4"
+    ),
+    qa_llm=ChatOpenAI(
+        openai_api_key=openai_key, 
+        temperature=0, 
+        model_name="gpt-4"
+    ),
+    validate_cypher= True,
+    graph=graph,
+    verbose=True, 
+    # return_intermediate_steps = True,
+    return_direct = True
 )
 
 @retry(tries=1, delay=30)
@@ -79,28 +99,10 @@ def get_results(question) -> str:
 
     graph.refresh_schema()
 
-    chain = GraphCypherQAChain.from_llm(
-        cypher_llm=ChatOpenAI(
-            openai_api_key=openai_key, 
-            temperature=0, 
-            model_name="gpt-4"
-        ),
-        qa_llm=ChatOpenAI(
-            openai_api_key=openai_key, 
-            temperature=0, 
-            model_name="gpt-4"
-        ),
-        validate_cypher= True,
-        graph=graph,
-        verbose=True, 
-        return_intermediate_steps = True,
-        return_direct = True
-    )
-
     chain_result = None
 
     try:
-        chain_result = chain.invoke({
+        chain_result = graph_chain.invoke({
             "query": question},
             prompt=CYPHER_GENERATION_PROMPT,
             return_only_outputs = True,

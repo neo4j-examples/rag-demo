@@ -6,10 +6,9 @@ from langchain_community.callbacks import StreamlitCallbackHandler
 from streamlit_feedback import streamlit_feedback
 from rag_demo.constants import SCHEMA_IMG_PATH, LANGCHAIN_IMG_PATH, TITLE
 import logging
-# import rag_demo.chains.vector_chain as vector_chain
-# import rag_demo.chains.graph_chain as graph_chain
-# import rag_demo.chains.vector_graph_chain as vector_graph_chain
 import rag_agent
+import rag_router
+# import rag_multi_retriever
 import streamlit as st
 
 # Analytics tracking
@@ -32,17 +31,6 @@ st.markdown(TITLE, unsafe_allow_html=True)
 placeholder = st.empty()
 emoji_feedback = st.empty()
 user_placeholder = st.empty()
-
-# def _approve(_input: str) -> bool:
-#     if _input == "echo 'Hello World'":
-#         return True
-#     msg = (
-#         "Do you approve of the following input"
-#         "Anything except 'Y'/'Yes' (case-insensitive) will be treated as a no"
-#     )
-#     msg += "\n\n" + _input + "\n"
-#     resp = input(msg)
-#     return resp.lower() in ("yes", "y")
 
 # Initialize message history
 if "messages" not in st.session_state:
@@ -163,11 +151,75 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
 
         # content = f"##### Simple Agent: \n" + answer
 
-        track("rag_demo", "ai_response", {"type": "simple_agent", "answer": content})
+        track("rag_demo", "ai_response", {"type": "rag_agent", "answer": content})
         new_message = {"role": "ai", "content": content}
         st.session_state.messages.append(new_message)
 
       message_placeholder.markdown(content)
+
+      # ROUTER OPTION
+      # with st.spinner('Running router...'):
+
+      #   message_placeholder = st.empty()
+      #   thought_container = st.container()
+
+      #   # NOTE: This callback handler only works with the deprecated initialize_agent option (see rag_agent.py)
+      #   st_callback = StreamlitCallbackHandler(
+      #     parent_container= thought_container,
+      #     expand_new_thoughts=False
+      #   )
+      #   # StreamlitCcallbackHandler api doc: https://api.python.langchain.com/en/latest/callbacks/langchain_community.callbacks.streamlit.streamlit_callback_handler.StreamlitCallbackHandler.html
+
+      #   agent_response = rag_router.get_results(
+      #     question=user_input,
+      #     callbacks=[st_callback]
+      #   )
+
+      #   if isinstance(agent_response, dict) is False:
+      #     logging.warning(f'Agent response was not the expected dict type: {agent_response}')
+      #     agent_response = str(agent_response)
+
+      #   content = agent_response['output']
+
+      #   # content = f"##### Simple Agent: \n" + answer
+
+      #   track("rag_demo", "ai_response", {"type": "simple_agent", "answer": content})
+      #   new_message = {"role": "ai", "content": content}
+      #   st.session_state.messages.append(new_message)
+
+      # message_placeholder.markdown(content)
+
+      # MULTI RETRIEVER
+      # with st.spinner('Running multi-retriever...'):
+
+      #   message_placeholder = st.empty()
+      #   thought_container = st.container()
+
+      #   # NOTE: This callback handler only works with the deprecated initialize_agent option (see rag_agent.py)
+      #   st_callback = StreamlitCallbackHandler(
+      #     parent_container= thought_container,
+      #     expand_new_thoughts=False
+      #   )
+      #   # StreamlitCcallbackHandler api doc: https://api.python.langchain.com/en/latest/callbacks/langchain_community.callbacks.streamlit.streamlit_callback_handler.StreamlitCallbackHandler.html
+
+      #   agent_response = rag_multi_retriever.get_results(
+      #     question=user_input,
+      #     callbacks=[st_callback]
+      #   )
+
+      #   if isinstance(agent_response, dict) is False:
+      #     logging.warning(f'Agent response was not the expected dict type: {agent_response}')
+      #     agent_response = str(agent_response)
+
+      #   content = agent_response['output']
+
+      #   # content = f"##### Simple Agent: \n" + answer
+
+      #   track("rag_demo", "ai_response", {"type": "simple_agent", "answer": content})
+      #   new_message = {"role": "ai", "content": content}
+      #   st.session_state.messages.append(new_message)
+
+      # message_placeholder.markdown(content)
 
   emoji_feedback = st.empty()
 

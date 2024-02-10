@@ -6,25 +6,23 @@ from langchain_experimental.plan_and_execute import PlanAndExecute, load_agent_e
 from langchain_community.chat_models import ChatOpenAI
 from langchain.prompts.prompt import PromptTemplate
 from rag_demo.tools.graph_tool import graph_tool
-from rag_demo.tools.vector_tool import vector_only_tool
-from rag_demo.tools.vector_graph_tool import vector_graph_tool
+from rag_demo.tools.vector_tool import vector_tool
 from retry import retry
 
 
 llm = OpenAI(temperature=0)
-# llm-math requires numexpr package
 tools = load_tools([], llm=llm)
-tools = tools + [graph_tool, vector_only_tool]
+tools = tools + [graph_tool, vector_tool]
 
 # OLDER AGENT - Will be deprecated in future, but works with the Streamlit callback handler
-agent_executor = initialize_agent(
-    tools, 
-    llm, 
-    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
-    verbose=True
-)
+# agent_executor = initialize_agent(
+#     tools, 
+#     llm, 
+#     agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, 
+#     verbose=True
+# )
 
-agent_executor.agent.llm_chain.prompt.template
+# agent_executor.agent.llm_chain.prompt.template
 
 # EXPERIMENTAL PLANNER
 # This goes through a very verbose chain of thought
@@ -46,20 +44,20 @@ agent_executor.agent.llm_chain.prompt.template
 # REACT AGENT EXECUTOR - Streamlit handler doesn't seem to work with this option
 
 # 🤷 Where does this actually pull from? 
-# prompt = hub.pull("hwchase17/react")
+prompt = hub.pull("hwchase17/react")
 
-# # More on agent types: https://python.langchain.com/docs/modules/agents/agent_types/
-# agent = create_react_agent(llm, tools, prompt)
+# More on agent types: https://python.langchain.com/docs/modules/agents/agent_types/
+agent = create_react_agent(llm, tools, prompt)
 
-# # NOTE: early_stopping_method generate option ONLY available for multi-action agents
-# agent_executor = AgentExecutor(
-#     agent=agent,
-#     tools=tools,
-#     verbose=True,
-#     return_intermediate_steps = True,
-#     max_iterations=6,
-#     # early_stopping_method = "generate"
-# )
+# NOTE: early_stopping_method generate option ONLY available for multi-action agents
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    verbose=True,
+    return_intermediate_steps = True,
+    max_iterations=6,
+    # early_stopping_method = "generate"
+)
 
 @retry(tries=2, delay=12)
 def get_results(question, callbacks) -> dict:
