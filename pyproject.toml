@@ -19,6 +19,7 @@ streamlit = "1.27.2"
 streamlit-chat = "0.1.1"
 streamlit-chat-media = "0.0.4"
 streamlit-feedback = "^0.1.3"
+clipboard = "^0.0.4"
 
 [build-system]
 requires = ["poetry-core"]

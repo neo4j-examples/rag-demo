@@ -23,12 +23,12 @@ agent_executor = AgentExecutor(
     agent=agent,
     tools=tools,
     verbose=True,
-    return_intermediate_steps = True,
-    max_iterations=6,
+    # return_intermediate_steps = True,
+    # max_iterations=1,
     # early_stopping_method = "generate"
 )
 
-@retry(tries=2, delay=6)
+@retry(tries=2, delay=20)
 def get_results(question, callbacks) -> dict:
     """Starts a LangChain agent to generate an answer using one of several Neo4j RAG tools.
 

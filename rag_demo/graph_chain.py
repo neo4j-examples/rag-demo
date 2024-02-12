@@ -82,7 +82,7 @@ graph_chain = GraphCypherQAChain.from_llm(
     return_direct = True
 )
 
-@retry(tries=1, delay=30)
+@retry(tries=2, delay=12)
 def get_results(question) -> str:
     """Generate a response from a GraphCypherQAChain targeted at generating answered related to relationships. 
 

@@ -86,7 +86,7 @@ vector_chain = RetrievalQAWithSourcesChain.from_chain_type(
     max_tokens_limit=3000
 )
 
-@retry(tries=5, delay=5)
+@retry(tries=2, delay=5)
 def get_results(question)-> str:
     """Generate response using Neo4jVector using vector index only
 

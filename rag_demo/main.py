@@ -8,6 +8,7 @@ from constants import SCHEMA_IMG_PATH, LANGCHAIN_IMG_PATH, TITLE
 import logging
 import rag_agent
 import streamlit as st
+from sidebar import sidebar
 
 # Anonymous Session Analytics
 if "SESSION_ID" not in st.session_state:
@@ -21,6 +22,7 @@ set_llm_cache(InMemoryCache())
 
 # App title
 st.markdown(TITLE, unsafe_allow_html=True)
+sidebar()
 
 # Define message placeholder and emoji feedback placeholder
 placeholder = st.empty()
@@ -30,9 +32,9 @@ user_placeholder = st.empty()
 # Initialize message history
 if "messages" not in st.session_state:
     st.session_state.messages = [
-      {"role": "ai", "content": f"This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using both vectors and structured data."}, 
-      {"role": "ai", "content": f"""This the schema in which the EDGAR filings are stored in Neo4j: \n <img style="width: 70%; height: auto;" src="{SCHEMA_IMG_PATH}"/>"""}, 
-      {"role": "ai", "content": f"""This is how the Chatbot flow goes: \n <img style="width: 70%; height: auto;" src="{LANGCHAIN_IMG_PATH}"/>"""}
+      {"role": "ai", "content": f"This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using both vectors and structured data.\nSee the sidebar for more information!"}, 
+      # {"role": "ai", "content": f"""This the schema in which the EDGAR filings are stored in Neo4j: \n <img style="width: 70%; height: auto;" src="{SCHEMA_IMG_PATH}"/>"""}, 
+      # {"role": "ai", "content": f"""This is how the Chatbot flow goes: \n <img style="width: 70%; height: auto;" src="{LANGCHAIN_IMG_PATH}"/>"""}
     ]
 
 # Display chat messages from history on app rerun
@@ -41,8 +43,13 @@ with placeholder.container():
     with st.chat_message(message["role"]):
         st.markdown(message["content"], unsafe_allow_html=True)
 
-# User input placeholder
-if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", key="user_input"):
+# User input - switch between sidebar sample quick select or actual user input. Clunky but works.
+if "sample" in st.session_state and st.session_state["sample"] is not None:
+  user_input = st.session_state["sample"]
+else:
+  user_input = st.chat_input(placeholder="Ask question on the SEC Filings", key="user_input")
+
+if user_input:
   with user_placeholder.container():
     track("rag_demo", "question_submitted", {"question": user_input})
     st.session_state.messages.append({"role": "user", "content": user_input})
@@ -80,6 +87,11 @@ if user_input := st.chat_input(placeholder="Ask question on the SEC Filings", ke
         st.session_state.messages.append(new_message)
 
       message_placeholder.markdown(content)
+  
+  # Reinsert user chat input if sample quick select was previously used.
+  if "sample" in st.session_state and st.session_state["sample"] is not None:
+    st.session_state["sample"] = None
+    user_input = st.chat_input(placeholder="Ask question on the SEC Filings", key="user_input")
 
   emoji_feedback = st.empty()
 
