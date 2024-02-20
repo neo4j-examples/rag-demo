@@ -2,7 +2,7 @@ from langchain.chains import GraphCypherQAChain
 from langchain.chains.conversation.memory import ConversationBufferMemory
 from langchain_community.graphs import Neo4jGraph
 from langchain.prompts.prompt import PromptTemplate
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
 from retry import retry
 import logging
 import streamlit as st
@@ -43,7 +43,6 @@ CYPHER_GENERATION_PROMPT = PromptTemplate(
     input_variables=["schema", "question"], template=CYPHER_GENERATION_TEMPLATE
 )
 
-EMBEDDING_MODEL = OpenAIEmbeddings()
 MEMORY = ConversationBufferMemory(
     memory_key="chat_history", 
     input_key='question', 
