@@ -31,7 +31,7 @@ MATCH (co:Company)-[fi]-(f:Form)-[po]-(c:Chunk)
 WHERE toLower(c.text) CONTAINS "lithium"
 RETURN DISTINCT count(c) as chunks, co.name ORDER BY chunks desc
 
-# Which companies are in the poultry business?
+# Which companies are in the poultry industry?
 MATCH (co:Company)-[fi]-(f:Form)-[po]-(c:Chunk)
 WHERE toLower(c.text) CONTAINS "chicken"
 RETURN DISTINCT count(c) as chunks, co.name ORDER BY chunks desc
