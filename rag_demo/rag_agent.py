@@ -1,6 +1,7 @@
 from langchain.agents import load_tools, AgentExecutor, create_react_agent
 from langchain import hub # requires langchainhub package
 from langchain_openai import OpenAI
+from vector_graph_tool import vector_graph_tool
 from graph_tool import graph_tool
 from vector_tool import vector_tool
 from retry import retry
@@ -8,7 +9,7 @@ from retry import retry
 # Setup tools the agent will use
 llm = OpenAI(temperature=0)
 tools = load_tools([], llm=llm)
-tools = tools + [graph_tool, vector_tool]
+tools = tools + [vector_graph_tool, graph_tool, vector_tool]
 
 
 # REACT AGENT EXECUTOR
