@@ -7,33 +7,37 @@ from retry import retry
 import logging
 import streamlit as st
 
-CYPHER_GENERATION_TEMPLATE = """Task:Generate Cypher statement to query a graph database.
+CYPHER_GENERATION_TEMPLATE = """Task: Generate Cypher statement to query a graph database strictly based on the schema and instructions provided.
 Instructions:
-Use only the provided relationship types and properties in the schema.
-Do not use any other relationship types or properties that are not provided.
+1. Use only nodes, relationships, and properties mentioned in the schema.
+2. Always enclose the Cypher output inside 3 backticks. Do not add 'cypher' after the backticks.
+3. Always do a case-insensitive and fuzzy search for any properties related search. Eg: to search for a Company name use `toLower(c.name) contains 'neo4j'`
+4. Always use aliases to refer the node in the query
+5. Always return count(DISTINCT n) for aggregations to avoid duplicates
+6. `OWNS_STOCK_IN` relationship is syonymous with `OWNS` and `OWNER`
+7. Use examples of questions and accurate Cypher statements below to guide you.
+
 Schema:
 {schema}
-Note: Do not include any explanations or apologies in your responses.
-Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
-Do not include any text except the generated Cypher statement.
+
 Examples: Here are a few examples of generated Cypher statements for particular questions:
 
 # How many Managers own Companies?
 MATCH (m:Manager)-[:OWNS_STOCK_IN]->(c:Company)
 RETURN count(DISTINCT m)
 
-# How many companies in the filings?
+# How many companies are in filings?
 MATCH (c:Company) 
 RETURN count(DISTINCT c)
 
-# Which companies are vulnerable to lithium shortage?
+# Which companies are vulnerable to material shortage?
 MATCH (co:Company)-[fi]-(f:Form)-[po]-(c:Chunk)
-WHERE toLower(c.text) CONTAINS "lithium"
+WHERE toLower(c.text) CONTAINS "material"
 RETURN DISTINCT count(c) as chunks, co.name ORDER BY chunks desc
 
-# Which companies are in the poultry industry?
+# Which companies are in a specific industry?
 MATCH (co:Company)-[fi]-(f:Form)-[po]-(c:Chunk)
-WHERE toLower(c.text) CONTAINS "chicken"
+WHERE toLower(c.text) CONTAINS "industryName"
 RETURN DISTINCT count(c) as chunks, co.name ORDER BY chunks desc
 
 The question is:
@@ -96,12 +100,15 @@ def get_results(question) -> str:
 
     graph.refresh_schema()
 
+    prompt=CYPHER_GENERATION_PROMPT.format(schema=graph.get_schema, question=question)
+    print('Prompt:', prompt)
+
     chain_result = None
 
     try:
         chain_result = graph_chain.invoke({
             "query": question},
-            prompt=CYPHER_GENERATION_PROMPT,
+            prompt=prompt,
             return_only_outputs = True,
         )
     except Exception as e:

@@ -8,33 +8,25 @@ from retry import retry
 import logging
 import streamlit as st
 
-VECTOR_GRAPH_PROMPT_TEMPLATE = """Human: You are a Financial expert with SEC filings who can answer questions only based on the context below.
-* Answer the question STRICTLY based on the context provided in JSON below.
-* Do not assume or retrieve any information outside of the context provided.
-* Think step by step before answering.
-* Include sources and links from the context if available.
-* List the results in rich text format if there are more than one results
-* If the context is empty, just respond None
+VECTOR_GRAPH_PROMPT_TEMPLATE = """Task: Provide names and related information financial filing data strictly based on the text and instructions provided.
+Instructions:
+1. Answer the question STRICTLY based on the text.
+2. Do not assume or retrieve any information outside of the text provided.
+3. Use as much information from the text as possible, including sources and links if available.
+4. If the output is empty, just respond None.
 
-<question>
-{input}
-</question>
-
-Here is the context:
-<context>
-{context}
-</context>
-
-Assistant:"""
+Question:
+{question}
+"""
 VECTOR_GRAPH_PROMPT = PromptTemplate(
-    input_variables=["input","context"], template=VECTOR_GRAPH_PROMPT_TEMPLATE
+    input_variables=["question"], template=VECTOR_GRAPH_PROMPT_TEMPLATE
 )
 
 EMBEDDING_MODEL = OpenAIEmbeddings()
 MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer', return_messages=True)
 
 index_name = "form_10k_chunks"
-node_property_name = "textopenaiembedding"
+node_property_name = "textEmbedding"
 url=st.secrets["NEO4J_URI"]
 username=st.secrets["NEO4J_USERNAME"]
 password=st.secrets["NEO4J_PASSWORD"]
@@ -42,8 +34,8 @@ retrieval_query = """
     WITH node AS doc, score as similarity
     ORDER BY similarity DESC LIMIT 5
     CALL { WITH doc
-        OPTIONAL MATCH (prevDoc:Chunk)-[:NEXT]->(doc)
-        OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Chunk)
+        OPTIONAL MATCH (prevDoc:Document)-[:NEXT]->(doc)
+        OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Document)
         RETURN prevDoc, doc AS result, nextDoc
     }
     WITH result, prevDoc, nextDoc, similarity
@@ -57,7 +49,8 @@ retrieval_query = """
         ORDER BY result.score DESC
         RETURN result as document, result.score as popularity, companyName, managers
     }
-    RETURN coalesce(prevDoc.text,'') + coalesce(document.text,'') + coalesce(nextDoc.text,'') as text, 
+    RETURN coalesce(prevDoc.text,'') + coalesce(document.text,'') + coalesce(nextDoc.text,'') + '\n Company: ' + coalesce(companyName,'') + '\n Managers: ' + coalesce(managers,'') as text, 
+        similarity as score,
         {companies: coalesce(companyName,''), managers: coalesce(managers,''), source: document.source} AS metadata
 """
 
@@ -121,15 +114,17 @@ def get_results(question)-> str:
 
     logging.info(f'Using Neo4j url: {url}')
 
+    prompt=VECTOR_GRAPH_PROMPT.format(question=question)
+
     # Returns a dict with keys: answer, sources
     chain_result = vector_graph_chain.invoke({
         "question": question},
-        prompt=VECTOR_GRAPH_PROMPT,
+        prompt=prompt,
         return_only_outputs = True,
     )
 
     logging.debug(f'chain_result: {chain_result}')
-    
+
     result = chain_result['answer']
 
     # Cite sources, if any
