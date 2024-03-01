@@ -32,7 +32,7 @@ def sidebar():
                     </style>
                     """, unsafe_allow_html=True)
         
-        sample_questions = "How many companies are in the filings?", "Which companies are in healthcare?","Which companies are vulnerable to lithium shortage?", "Which managers own more than one company?", "List the top 3 managers by the number of companies they own.", "Which 5 companies have the most managers?"
+        sample_questions = "How many companies are in the filings?", "Which companies are in the healthcare industry?","Which companies are vulnerable to lithium shortage?", "Which managers own more than one company?", "List the top 3 managers by the number of companies they own.", "Which 5 companies have the most managers?"
 
         for text, col in zip(sample_questions, st.columns(len(sample_questions))):
             if col.button(text, key=text):
