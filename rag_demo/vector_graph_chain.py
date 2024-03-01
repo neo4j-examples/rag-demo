@@ -124,7 +124,6 @@ def get_results(question)-> str:
     )
 
     logging.debug(f'chain_result: {chain_result}')
-
     result = chain_result['answer']
 
     # Cite sources, if any
