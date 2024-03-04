@@ -32,7 +32,12 @@ VECTOR_PROMPT = PromptTemplate(
     input_variables=["input","context"], template=VECTOR_PROMPT_TEMPLATE
 )
 
-EMBEDDING_MODEL = OpenAIEmbeddings()
+if "USER_OPENAI_API_KEY" in st.session_state:
+    openai_key = st.session_state["USER_OPENAI_API_KEY"]
+else:
+    openai_key = st.secrets["OPENAI_API_KEY"]
+
+EMBEDDING_MODEL = OpenAIEmbeddings(openai_api_key=openai_key)
 MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer', return_messages=True)
 
 index_name = "form_10k_chunks"
@@ -78,7 +83,7 @@ if vector_store is None:
 vector_retriever = vector_store.as_retriever()
 
 vector_chain = RetrievalQAWithSourcesChain.from_chain_type(
-    ChatOpenAI(temperature=0), 
+    ChatOpenAI(temperature=0, openai_api_key=openai_key), 
     chain_type="stuff", 
     retriever=vector_retriever,
     memory=MEMORY,
@@ -119,7 +124,7 @@ def get_results(question)-> str:
 
     return result
 
-# Using the vector store directly. But this will blow out the token count
+# Using the vector store directly. But this could blow out the token count
 # @retry(tries=5, delay=5)
 # def get_results(question)-> str:
 #     """Generate response using Neo4jVector using vector index only
