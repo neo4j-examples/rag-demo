@@ -13,6 +13,14 @@ def ChangeButtonColour(wgt_txt, wch_hex_colour = '12px'):
 
 def sidebar():
     with st.sidebar:
+
+        with st.expander("OpenAI Key"):
+            new_oak = st.text_input("Your OpenAI API Key")
+            # if "USER_OPENAI_KEY" not in st.session_state:
+            #     st.session_state["USER_OPENAI_KEY"] = new_oak
+            # else:
+            st.session_state["USER_OPENAI_KEY"] = new_oak
+
         st.markdown(f"""This the schema in which the EDGAR filings are stored in Neo4j: \n <img style="width: 70%; height: auto;" src="{SCHEMA_IMG_PATH}"/>""", unsafe_allow_html=True)
 
         st.markdown(f"""This is how the Chatbot flow goes: \n <img style="width: 70%; height: auto;" src="{LANGCHAIN_IMG_PATH}"/>""", unsafe_allow_html=True)

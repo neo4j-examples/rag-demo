@@ -1,4 +1,5 @@
 from analytics import track
+from free_use_manager import free_questions_exhausted, user_supplied_openai_key_unavailable, decrement_free_questions
 from langchain.globals import set_llm_cache
 from langchain.cache import InMemoryCache
 from langchain_community.callbacks import HumanApprovalCallbackHandler
@@ -12,6 +13,7 @@ from sidebar import sidebar
 
 # Anonymous Session Analytics
 if "SESSION_ID" not in st.session_state:
+  # Track method will create and add session id to state on first run
   track(
     "rag_demo",
     "appStarted",
@@ -44,6 +46,10 @@ with placeholder.container():
         st.markdown(message["content"], unsafe_allow_html=True)
 
 # User input - switch between sidebar sample quick select or actual user input. Clunky but works.
+if free_questions_exhausted() and user_supplied_openai_key_unavailable():
+  st.warning("Thank you for trying out the Neo4j Rag Demo. Please input your OpenAI Key in the sidebar to continue asking questions.")
+  st.stop()
+
 if "sample" in st.session_state and st.session_state["sample"] is not None:
   user_input = st.session_state["sample"]
 else:
@@ -85,6 +91,8 @@ if user_input:
         track("rag_demo", "ai_response", {"type": "rag_agent", "answer": content})
         new_message = {"role": "ai", "content": content}
         st.session_state.messages.append(new_message)
+
+        decrement_free_questions()
 
       message_placeholder.markdown(content)
   

@@ -1,4 +1,3 @@
-from json import loads, dumps
 from langchain.prompts.prompt import PromptTemplate
 from langchain.vectorstores.neo4j_vector import Neo4jVector
 from langchain.chains import RetrievalQAWithSourcesChain
@@ -22,7 +21,12 @@ VECTOR_GRAPH_PROMPT = PromptTemplate(
     input_variables=["question"], template=VECTOR_GRAPH_PROMPT_TEMPLATE
 )
 
-EMBEDDING_MODEL = OpenAIEmbeddings()
+if "USER_OPENAI_API_KEY" in st.session_state:
+    openai_key = st.session_state["USER_OPENAI_API_KEY"]
+else:
+    openai_key = st.secrets["OPENAI_API_KEY"]
+
+EMBEDDING_MODEL = OpenAIEmbeddings(openai_api_key=openai_key)
 MEMORY = ConversationBufferMemory(memory_key="chat_history", input_key='question', output_key='answer', return_messages=True)
 
 index_name = "form_10k_chunks"
@@ -93,7 +97,7 @@ if vector_store is None:
 vector_graph_retriever = vector_store.as_retriever()
 
 vector_graph_chain = RetrievalQAWithSourcesChain.from_chain_type(
-    ChatOpenAI(temperature=0), 
+    ChatOpenAI(temperature=0, openai_api_key=openai_key), 
     chain_type="stuff", 
     retriever=vector_graph_retriever,
     memory=MEMORY,
