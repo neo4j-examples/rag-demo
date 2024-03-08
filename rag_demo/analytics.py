@@ -1,11 +1,14 @@
 from segment import analytics
 import streamlit as st
-import logging
 import uuid
 
 SESSION_ID = "SESSION_ID"
 
-analytics.write_key = st.secrets["SEGMENT_WRITE_KEY"]
+try:
+    analytics.write_key = st.secrets["SEGMENT_WRITE_KEY"]
+    ANALYTICS_ENABLED = True
+except:
+    ANALYTICS_ENABLED = False
 
 def track(
         user_id: str, 
@@ -19,6 +22,9 @@ def track(
         properties (dict): Any optional additional properties
     """
 
+    if ANALYTICS_ENABLED is False:
+        return
+    
     if SESSION_ID not in st.session_state:
         st.session_state[SESSION_ID] = str(uuid.uuid4())
 

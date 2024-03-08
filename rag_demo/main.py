@@ -11,6 +11,10 @@ import rag_agent
 import streamlit as st
 from sidebar import sidebar
 
+# Logging options
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 # Anonymous Session Analytics
 if "SESSION_ID" not in st.session_state:
   # Track method will create and add session id to state on first run

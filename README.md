@@ -5,6 +5,7 @@ This sample application demonstrates how to implement a Large Language Model (LL
 
 ## Requirements
 - [Poetry](https://python-poetry.org) for dependency managament.
+- Duplicate the `secrets.toml.example` file to `secrets.toml` and populate with appropriate keys.
 
 ## Usage
 ```
