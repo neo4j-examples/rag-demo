@@ -5,8 +5,12 @@ import uuid
 SESSION_ID = "SESSION_ID"
 
 try:
-    analytics.write_key = st.secrets["SEGMENT_WRITE_KEY"]
-    ANALYTICS_ENABLED = True
+    segment_key = st.secrets["SEGMENT_WRITE_KEY"]
+    if segment_key == "" or segment_key is None:
+        ANALYTICS_ENABLED = False
+    else:
+        ANALYTICS_ENABLED = True
+        analytics.write_key = segment_key
 except:
     ANALYTICS_ENABLED = False
 
