@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rag-demo"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["Andreas Kollegger <akollegger@gmail.com>", "Jennifer Reif<jennifer@thehecklers.org>", "Jason Koo <jalakoo@gmail.com>", "Alison Cossette <alisoncossette@gmail.com>"]
 readme = "README.md"
