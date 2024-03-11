@@ -56,8 +56,11 @@ MEMORY = ConversationBufferMemory(
 url = st.secrets["NEO4J_URI"]
 username = st.secrets["NEO4J_USERNAME"]
 password = st.secrets["NEO4J_PASSWORD"]
-openai_key = st.secrets["OPENAI_API_KEY"]
-llm_key = st.secrets["OPENAI_API_KEY"]
+
+if "USER_OPENAI_API_KEY" in st.session_state:
+    openai_key = st.session_state["USER_OPENAI_API_KEY"]
+else:
+    openai_key = st.secrets["OPENAI_API_KEY"]
 
 graph = Neo4jGraph(
     url=url,
