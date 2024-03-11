@@ -7,7 +7,7 @@ def _setup_free_questions_count():
         try:
             st.session_state["FREE_QUESTIONS_REMAINING"] = st.secrets["FREE_QUESTIONS_PER_SESSION"]
         except:
-            st.session_state["FREE_QUESTIONS_REMAINING"] = 3
+            st.session_state["FREE_QUESTIONS_REMAINING"] = 100
 
 def free_questions_exhausted()-> bool:
 
