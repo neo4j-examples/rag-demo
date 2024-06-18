@@ -1,10 +1,14 @@
-from langchain.agents import load_tools, AgentExecutor, create_react_agent
-from langchain import hub # requires langchainhub package
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain_community.agent_toolkits.load_tools import load_tools
+from langchain import hub  # requires langchainhub package
 from langchain_openai import OpenAI
 from vector_graph_tool import vector_graph_tool
 from graph_cypher_tool import graph_cypher_tool
 from vector_tool import vector_tool
 from retry import retry
+
+# from langchain.chains.conversation.memory import ConversationBufferWindowMemory
+
 
 # Setup tools the agent will use
 llm = OpenAI(temperature=0)
@@ -19,15 +23,23 @@ prompt = hub.pull("hwchase17/react")
 # More on agent types: https://python.langchain.com/docs/modules/agents/agent_types/
 agent = create_react_agent(llm, tools, prompt)
 
+# memory = ConversationBufferWindowMemory(
+#     memory_key="chat_history",
+#     k=5,
+#     return_messages=True,
+# )
+
 # NOTE: early_stopping_method generate option ONLY available for multi-action agents
 agent_executor = AgentExecutor(
     agent=agent,
     tools=tools,
+    # memory=memory,
     verbose=True,
     # return_intermediate_steps = True,
     # max_iterations=1,
     # early_stopping_method = "generate"
 )
+
 
 @retry(tries=2, delay=20)
 def get_results(question, callbacks) -> dict:
