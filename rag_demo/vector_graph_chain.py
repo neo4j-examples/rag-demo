@@ -38,14 +38,14 @@ retrieval_query = """
     WITH node AS doc, score as similarity
     ORDER BY similarity DESC LIMIT 5
     CALL { WITH doc
-        OPTIONAL MATCH (prevDoc:Document)-[:NEXT]->(doc)
-        OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Document)
+        OPTIONAL MATCH (prevDoc:Chunk)-[:NEXT]->(doc)
+        OPTIONAL MATCH (doc)-[:NEXT]->(nextDoc:Chunk)
         RETURN prevDoc, doc AS result, nextDoc
     }
     WITH result, prevDoc, nextDoc, similarity
     CALL {
         WITH result
-        OPTIONAL MATCH (result)<-[:HAS_CHUNK]-(:Form)-[:FILED]->(company:Company)
+        OPTIONAL MATCH (result)-[:PART_OF]->(:Form)<-[:FILED]-(company:Company)
         OPTIONAL MATCH (company)<-[:OWNS_STOCK_IN]-(manager:Manager)
         WITH result, company.name as companyName, apoc.text.join(collect(manager.managerName),';') as managers
         WHERE companyName IS NOT NULL OR managers > ""
