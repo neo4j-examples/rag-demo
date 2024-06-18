@@ -1,4 +1,5 @@
-from langchain.agents import load_tools, AgentExecutor, create_react_agent
+from langchain.agents import AgentExecutor, create_react_agent
+from langchain_community.agent_toolkits.load_tools import load_tools
 from langchain import hub  # requires langchainhub package
 from langchain_openai import OpenAI
 from vector_graph_tool import vector_graph_tool
