@@ -9,7 +9,9 @@ from langchain_community.cache import InMemoryCache
 from streamlit_feedback import streamlit_feedback
 from constants import TITLE
 import logging
-import rag_agent
+#import rag_agent
+import  graph_cypher_chain
+
 import streamlit as st
 from sidebar import sidebar
 
@@ -62,7 +64,7 @@ if "sample" in st.session_state and st.session_state["sample"] is not None:
     user_input = st.session_state["sample"]
 else:
     user_input = st.chat_input(
-        placeholder="Ask question on the SEC Filings", key="user_input"
+        placeholder="Ask question on the IFC project", key="user_input"
     )
 
 if user_input:
@@ -87,17 +89,19 @@ if user_input:
                 # )
                 # StreamlitCcallbackHandler api doc: https://api.python.langchain.com/en/latest/callbacks/langchain_community.callbacks.streamlit.streamlit_callback_handler.StreamlitCallbackHandler.html
 
-                agent_response = rag_agent.get_results(
-                    question=user_input, callbacks=[]
-                )
-
+#                agent_response = rag_agent.get_results(
+#                    question=user_input, callbacks=[]
+#                )
+                agent_response = graph_cypher_chain.get_results(
+                    question=user_input
+                )                
                 if isinstance(agent_response, dict) is False:
                     logging.warning(
                         f"Agent response was not the expected dict type: {agent_response}"
                     )
                     agent_response = str(agent_response)
-
-                content = agent_response["output"]
+                content = str(agent_response)
+ #               content = agent_response["output"]
 
                 track(
                     "rag_demo", "ai_response", {"type": "rag_agent", "answer": content}
