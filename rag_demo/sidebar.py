@@ -120,7 +120,7 @@ def sidebar():
                     </style>
                     """, unsafe_allow_html=True)
         
-        sample_questions = "How many storeys in the building?", "כמה קורות יש בקומה 14","מה נפח הקורות הכולל בבניין?", "Which managers own more than one company?", "מהי הקומה האמצעית בבניין?", "מה נפח הקורות בקומה הגבוהה ביותר? מה שמה ? ומה גובהה?"
+        sample_questions = "How many storeys in the building?", "כמה קורות יש בקומה 15","מהן ששת הקומות הראשונות?","מה נפח הקורות הכולל בבניין?", "What is the total length of the column in the building?", "מהי הקומה האמצעית בבניין?", "מה נפח הקורות בקומה הגבוהה ביותר? מה שמה ? ומה גובהה?"
 
         for text, col in zip(sample_questions, st.columns(len(sample_questions))):
             if col.button(text, key=text):
