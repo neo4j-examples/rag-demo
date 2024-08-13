@@ -3,6 +3,7 @@ from langchain.chains.conversation.memory import ConversationBufferMemory
 from langchain_community.graphs import Neo4jGraph
 from langchain.prompts.prompt import PromptTemplate
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from retry import retry
 import logging
 import streamlit as st
@@ -141,10 +142,10 @@ url = st.secrets["NEO4J_URI"]
 username = st.secrets["NEO4J_USERNAME"]
 password = st.secrets["NEO4J_PASSWORD"]
 
-if "USER_OPENAI_API_KEY" in st.session_state:
-    openai_key = st.session_state["USER_OPENAI_API_KEY"]
-else:
-    openai_key = st.secrets["OPENAI_API_KEY"]
+#if "USER_OPENAI_API_KEY" in st.session_state:
+#    openai_key = st.session_state["USER_OPENAI_API_KEY"]
+#else:
+#    openai_key = st.secrets["OPENAI_API_KEY"]
 
 graph = Neo4jGraph(
     url=url,
@@ -153,8 +154,16 @@ graph = Neo4jGraph(
     sanitize = True
 )
 import os
-cypher_llm = ChatOpenAI(model=os.getenv('GPT_MODEL_NAME'), temperature=0)
-qa_llm= ChatOpenAI(model=os.getenv('GPT_MODEL_NAME'), temperature=0)
+cypher_llm=None
+qa_llm=None
+model_name=os.getenv('GPT_MODEL_NAME')
+if "gemini" in model_name:
+    google_api_key=os.getenv('GOOGLE_API_KEY')
+    cypher_llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=google_api_key,temperature=0, verbose=True,top_k=200)
+    qa_llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=google_api_key,temperature=0, verbose=True,top_k=200)
+else:
+    cypher_llm = ChatOpenAI(model=os.getenv('GPT_MODEL_NAME'), temperature=0)
+    qa_llm= ChatOpenAI(model=os.getenv('GPT_MODEL_NAME'), temperature=0)
 # Official API doc for GraphCypherQAChain at: https://api.python.langchain.com/en/latest/chains/langchain.chains.graph_qa.base.GraphQAChain.html#
 graph_chain = GraphCypherQAChain.from_llm(
     cypher_llm=cypher_llm,
