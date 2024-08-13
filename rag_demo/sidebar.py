@@ -2,6 +2,7 @@ from constants import SCHEMA_IMG_PATH, LANGCHAIN_IMG_PATH
 import streamlit as st
 import streamlit.components.v1 as components
 
+
 def ChangeButtonColour(wgt_txt, wch_hex_colour = '12px'):
     htmlstr = """<script>var elements = window.parent.document.querySelectorAll('*'), i;
                 for (i = 0; i < elements.length; ++i) 
@@ -40,7 +41,7 @@ def sidebar():
                     </style>
                     """, unsafe_allow_html=True)
         
-        sample_questions = "How many companies are in the filings?", "Which companies are in the healthcare industry?","Which companies are vulnerable to lithium shortage?", "Which managers own more than one company?", "List the top 3 managers by the number of companies they own.", "Which 5 companies have the most managers?"
+        sample_questions = "How many storeys in the building?", "כמה קורות יש בקומה 14","מה נפח הקורות הכולל בבניין?", "Which managers own more than one company?", "מהי הקומה האמצעית בבניין?", "מה נפח הקורות בקומה הגבוהה ביותר? מה שמה ? ומה גובהה?"
 
         for text, col in zip(sample_questions, st.columns(len(sample_questions))):
             if col.button(text, key=text):

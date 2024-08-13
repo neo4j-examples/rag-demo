@@ -11,7 +11,7 @@ from constants import TITLE
 import logging
 #import rag_agent
 import  graph_cypher_chain
-
+from graph_cypher_tool import graph_cypher_tool
 import streamlit as st
 from sidebar import sidebar
 
@@ -92,9 +92,10 @@ if user_input:
 #                agent_response = rag_agent.get_results(
 #                    question=user_input, callbacks=[]
 #                )
-                agent_response = graph_cypher_chain.get_results(
-                    question=user_input
-                )                
+#                agent_response = graph_cypher_chain.get_results(
+#                    question=user_input
+#                )    
+                agent_response=graph_cypher_tool.run(tool_input=user_input)            
                 if isinstance(agent_response, dict) is False:
                     logging.warning(
                         f"Agent response was not the expected dict type: {agent_response}"

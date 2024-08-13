@@ -58,7 +58,8 @@ resonses:            MATCH (m)<-[:Material]-(ml:IfcMaterialLayer)<-[:MaterialLay
 resonses:            MATCH (m:IfcMaterial)<-[:RelatingMaterial]-(ascmat:IfcRelAssociatesMaterial)-[:RelatedObjects]->(o) WHERE toLower(m.Name) CONTAINS 'steel' RETURN o
 # get element , element type, element entity and its related implicit quantity names (example: GrossVolume, length, area) and their coresponding quantity values
 resonses:            MATCH (e)<-[:RelatedObjects]-(rdbp:IfcRelDefinesByProperties)-[:RelatingPropertyDefinition]->(eq:IfcElementQuantity)-[:Quantities]->(q) WITH e, eq, q, LABELS(e)[0] AS element_entity, PROPERTIES(q) AS qProps RETURN e.Name AS elementName, element_entity ,e.ObjectType as element_type ,q.Name AS quantity_property_name, CASE WHEN size(keys(qProps)) >= 2 THEN qProps[ keys(qProps)[1] ] ELSE null END AS quantity_property_value
-
+# what is the height of קומה 15?
+response:           MATCH (n:IfcBuildingStorey {{Name: "קומה 15"}}) return n.Elevation      
 
 Critical Note: 
 Do not include any explanations or apologies in your responses.
