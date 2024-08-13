@@ -8,122 +8,62 @@ from retry import retry
 import logging
 import streamlit as st
 
-CYPHER_GENERATION_TEMPLATE = """Task: Generate Cypher statement to query a graph database strictly based on the schema and instructions provided.
+CYPHER_GENERATION_TEMPLATE = """
+Task:Generate Cypher statement to query a graph database.
 Instructions:
-1. Use only nodes, relationships, and properties mentioned in the schema. dont invent anything.
-2. Always enclose the Cypher output inside 3 backticks. Do not add anythin except for the 'cypher' after the backticks. 
-3. Always do a case-insensitive and fuzzy search for any properties related search. Eg: to search for a Company name use `toLower(c.name) contains 'neo4j'`
-4. Always use aliases to refer the node in the query
-5. Always return count(DISTINCT n) for aggregations to avoid duplicates
-6. All the data is based on ifc (industry foundation classes) standard.
-7. Use examples of questions and accurate Cypher statements below to guide you.
-8. Do not include any explanations or apologies in your responses.
+Use only Node properties defined under the schema.
+use only cypher relationships that are mentioned below "The relationships:" 
+All the data is based on ifc (industry foundation classes) standard.
+Do not use any other relationship types or properties that are not provided.
+use the examples below as much as possible, before submitting the answer.  
 
 
 Schema:
 {schema}
 
-Examples: Here are a few examples of generated Cypher statements for particular questions:
-###########################################################################################
-# Get gross volume of all entities that have gross volume (such as IfcBeam, IfcWallStandardCase, IfcSlab, IfcColumn):
-MATCH (n:IfcQuantityVolume)<-[:Quantities]-(:IfcElementQuantity)<-[:RelatingPropertyDefinition]-(:IfcRelDefinesByProperties)-[:RelatedObjects]->(o)
-RETURN LABELS(o)[0] AS entity_name, o.ObjectType AS entity_type, n.VolumeValue AS gross_volume
 
-# Get all columns with relation to floors:
-MATCH (n:IfcBuildingStorey)<-[:RelatingStructure]-(ss:IfcRelContainedInSpatialStructure)-[:RelatedElements]->(c:IfcColumn)
-RETURN n, ss, c
+Cypher examples:
+examples:
+# how many floors in the building?
+response: MATCH (b:IfcBuilding)<-[:RelatingObject]-(:IfcRelAggregates)-[:RelatedObjects]->(bs:IfcBuildingStorey) RETURN count(DISTINCT bs)
+# get gross volume of all entities that has gross volume (such as IfcBeam, IfcWallStandardCase, IfcSlab, IfcColumn): 
+resonses:            MATCH (n:IfcQuantityVolume)<-[:Quantities]-(:IfcElementQuantity)<-[:RelatingPropertyDefinition]-(:IfcRelDefinesByProperties)-[:RelatedObjects]->(o) return labels(o)[0] as entity_name,o.ObjectType as entity_type ,n.VolumeValue as gross_volume
+# get all columns with relation to floors:
+resonses:            MATCH (n:IfcBuildingStorey)<-[:RelatingStructure]-(ss:IfcRelContainedInSpatialStructure)-[:RelatedElements]->(c:IfcColumn) RETURN n,ss,c
+# whar are the materials used for beam?
+resonses:             match (mt:IfcMaterial)<-[:RelatingMaterial]-(ascmat:IfcRelAssociatesMaterial)-[:RelatedObjects]->(bm:IfcBeam ) return (mt) .
+# what objects were made by materials ?
+resonses:            MATCH (m:IfcMaterial)<-[:RelatingMaterial]-(asm:IfcRelAssociatesMaterial)-[:RelatedObjects]->(o) return (o)
+# what spaces spaces are in floors?
+resonses:            match(IfcBuildingStorey)<-[:RelatingObject]-(:IfcRelAggregates)-[:RelatedObjects]->(s:IfcSpace) return (s)
+# count beams by type:
+resonses:           MATCH (b:IfcBeam) RETURN b.ObjectType AS object_type, COUNT(b) AS count ORDER BY count DESC
+# count columns by type:
+resonses:            MATCH (b:IfcColumns) RETURN b.ObjectType AS object_type, COUNT(b) AS count ORDER BY count DESC
+# count walls by type:
+resonses:            MATCH (b:IfcWall) RETURN b.ObjectType AS object_type, COUNT(b) AS count ORDER BY count DESC
+# get the buildings floor/storey sequence, Storey Level, Storey Elevation and Storey Name:
+resonses:            MATCH (storey:IfcBuildingStorey) WHERE storey.Elevation IS NOT NULL WITH storey ORDER BY storey.Elevation ASC WITH collect(storey) AS sortedStoreys UNWIND range(0, size(sortedStoreys) - 1) AS idx WITH idx, sortedStoreys[idx] AS storey, sortedStoreys RETURN CASE WHEN storey.Elevation < 0 THEN -1 * (size([s IN sortedStoreys WHERE s.Elevation < 0]) - idx) WHEN storey.Elevation = 0 THEN 0 ELSE idx - size([s IN sortedStoreys WHERE s.Elevation < 0]) END AS StoreyLevel, idx+1 as StoreySequence,storey.Name AS StoreyName, storey.Elevation AS Elevation ORDER BY storey.Elevation ASC
+# what are the relation between IfcBuilding and  IfcBuildingStorey storeys:
+resonses:            MATCH (b:IfcBuilding)<-[:RelatingObject]-(:IfcRelAggregates)-[:RelatedObjects]->(bs:IfcBuildingStorey) return(bs)
+# get the building top floor/storey name:
+resonses:            MATCH (storey:IfcBuildingStorey) WHERE storey.Elevation IS NOT NULL WITH storey ORDER BY storey.Elevation DESC LIMIT 1 RETURN storey.Name AS TopStoreyName
+# get the  storey level of the middle storey:
+resonses:            MATCH (storey:IfcBuildingStorey) WHERE storey.Elevation IS NOT NULL WITH storey ORDER BY storey.Elevation ASC WITH collect(storey) AS sortedStoreys WITH sortedStoreys, size(sortedStoreys) AS totalCount WITH sortedStoreys, totalCount, floor(totalCount / 2.0) AS middleIndex RETURN sortedStoreys[toInteger(middleIndex)] AS middleStorey, sortedStoreys[toInteger(middleIndex)].Name AS StoreyName, sortedStoreys[toInteger(middleIndex)].Elevation AS Elevation
+# get the number of columns, sum of column volume, sum of beam volume,  average of beam volume,  average of column volume for each storey of the building, mention the storey name and elevation order by elevation:
+resonses:            MATCH (storey:IfcBuildingStorey)<-[:RelatingStructure]-(ss:IfcRelContainedInSpatialStructure)-[:RelatedElements]->(c:IfcColumn) OPTIONAL MATCH (c)<-[:RelatedObjects]-(eq:IfcRelDefinesByProperties)-[:RelatingPropertyDefinition]->(ev:IfcElementQuantity)-[:Quantities]->(qv:IfcQuantityVolume) WITH storey, count(c) AS column_count, sum(qv.VolumeValue) AS column_volume_sum, storey.Name AS storey_name, storey.Elevation AS storey_elevation OPTIONAL MATCH (storey)<-[:RelatingStructure]-()-[:RelatedElements]->(b:IfcBeam) OPTIONAL MATCH (b)<-[:RelatedObjects]-()-[:RelatingPropertyDefinition]->(ev:IfcElementQuantity)-[:Quantities]->(qv:IfcQuantityVolume) WITH storey, column_count, column_volume_sum, storey_name, storey_elevation, count(b) AS beam_count, sum(qv.VolumeValue) AS beam_volume_sum RETURN storey_name, storey_elevation, column_count, column_volume_sum, beam_count, beam_volume_sum, CASE WHEN beam_count > 0 THEN beam_volume_sum / beam_count ELSE 0 END AS beam_volume_avg, CASE WHEN column_count > 0 THEN column_volume_sum / column_count ELSE 0 END AS column_volume_avg ORDER BY storey_elevation ASC
+$ get materials of slab type
+resonses:            MATCH (m)<-[:Material]-(ml:IfcMaterialLayer)<-[:MaterialLayers]-(:IfcMaterialLayerSet)<-[:RelatingMaterial]-(:IfcRelAssociatesMaterial)-[:RelatedObjects]->(st:IfcSlabType) return m,st
+# get all elements that use steel
+resonses:            MATCH (m:IfcMaterial)<-[:RelatingMaterial]-(ascmat:IfcRelAssociatesMaterial)-[:RelatedObjects]->(o) WHERE toLower(m.Name) CONTAINS 'steel' RETURN o
+# get element , element type, element entity and its related implicit quantity names (example: GrossVolume, length, area) and their coresponding quantity values
+resonses:            MATCH (e)<-[:RelatedObjects]-(rdbp:IfcRelDefinesByProperties)-[:RelatingPropertyDefinition]->(eq:IfcElementQuantity)-[:Quantities]->(q) WITH e, eq, q, LABELS(e)[0] AS element_entity, PROPERTIES(q) AS qProps RETURN e.Name AS elementName, element_entity ,e.ObjectType as element_type ,q.Name AS quantity_property_name, CASE WHEN size(keys(qProps)) >= 2 THEN qProps[ keys(qProps)[1] ] ELSE null END AS quantity_property_value
 
-# What are the materials used for beams?
-MATCH (mt:IfcMaterial)<-[:RelatingMaterial]-(ascmat:IfcRelAssociatesMaterial)-[:RelatedObjects]->(bm:IfcBeam)
-RETURN mt
 
-# What objects were made by materials?
-MATCH (m:IfcMaterial)<-[:RelatingMaterial]-(asm:IfcRelAssociatesMaterial)-[:RelatedObjects]->(o)
-RETURN o
-
-# What spaces are in floors?
-MATCH (IfcBuildingStorey)<-[:RelatingObject]-(:IfcRelAggregates)-[:RelatedObjects]->(s:IfcSpace)
-RETURN s
-
-# Count beams by type:
-MATCH (b:IfcBeam)
-RETURN b.ObjectType AS object_type, COUNT(b) AS count
-ORDER BY count DESC
-
-# Count columns by type:
-MATCH (b:IfcColumn)
-RETURN b.ObjectType AS object_type, COUNT(b) AS count
-ORDER BY count DESC
-
-# Count walls by type:
-MATCH (b:IfcWall)
-RETURN b.ObjectType AS object_type, COUNT(b) AS count
-ORDER BY count DESC
-
-# Get the building's floor/storey sequence, Storey Level, Storey Elevation, and Storey Name:
-MATCH (storey:IfcBuildingStorey)
-WHERE storey.Elevation IS NOT NULL
-WITH storey
-ORDER BY storey.Elevation ASC
-WITH collect(storey) AS sortedStoreys
-UNWIND range(0, size(sortedStoreys) - 1) AS idx
-WITH idx, sortedStoreys[idx] AS storey, sortedStoreys
-RETURN CASE
-  WHEN storey.Elevation < 0 THEN -1 * (size([s IN sortedStoreys WHERE s.Elevation < 0]) - idx)
-  WHEN storey.Elevation = 0 THEN 0
-  ELSE idx - size([s IN sortedStoreys WHERE s.Elevation < 0])
-END AS StoreyLevel, idx + 1 AS StoreySequence, storey.Name AS StoreyName, storey.Elevation AS Elevation
-ORDER BY storey.Elevation ASC
-
-# What are the relations between IfcBuilding and IfcBuildingStorey storeys?
-MATCH (b:IfcBuilding)<-[:RelatingObject]-(:IfcRelAggregates)-[:RelatedObjects]->(bs:IfcBuildingStorey)
-RETURN bs
-
-# Get the building top floor/storey name:
-MATCH (storey:IfcBuildingStorey)
-WHERE storey.Elevation IS NOT NULL
-WITH storey
-ORDER BY storey.Elevation DESC
-LIMIT 1
-RETURN storey.Name AS TopStoreyName
-
-# Get the storey level of the middle storey:
-MATCH (storey:IfcBuildingStorey)
-WHERE storey.Elevation IS NOT NULL
-WITH storey
-ORDER BY storey.Elevation ASC
-WITH collect(storey) AS sortedStoreys
-WITH sortedStoreys, size(sortedStoreys) AS totalCount
-WITH sortedStoreys, totalCount, floor(totalCount / 2.0) AS middleIndex
-RETURN sortedStoreys[toInteger(middleIndex)] AS middleStorey, sortedStoreys[toInteger(middleIndex)].Name AS StoreyName, sortedStoreys[toInteger(middleIndex)].Elevation AS Elevation
-
-# Get the number of columns, sum of column volume, sum of beam volume, average of beam volume, average of column volume for each storey of the building, mentioning the storey name and elevation ordered by elevation:
-MATCH (storey:IfcBuildingStorey)<-[:RelatingStructure]-(ss:IfcRelContainedInSpatialStructure)-[:RelatedElements]->(c:IfcColumn)
-OPTIONAL MATCH (c)<-[:RelatedObjects]-(eq:IfcRelDefinesByProperties)-[:RelatingPropertyDefinition]->(ev:IfcElementQuantity)-[:Quantities]->(qv:IfcQuantityVolume)
-WITH storey, count(c) AS column_count, sum(qv.VolumeValue) AS column_volume_sum, storey.Name AS storey_name, storey.Elevation AS storey_elevation
-OPTIONAL MATCH (storey)<-[:RelatingStructure]-()-[:RelatedElements]->(b:IfcBeam)
-OPTIONAL MATCH (b)<-[:RelatedObjects]-()-[:RelatingPropertyDefinition]->(ev:IfcElementQuantity)-[:Quantities]->(qv:IfcQuantityVolume)
-WITH storey, column_count, column_volume_sum, storey_name, storey_elevation, count(b) AS beam_count, sum(qv.VolumeValue) AS beam_volume_sum
-RETURN storey_name, storey_elevation, column_count, column_volume_sum, beam_count, beam_volume_sum,
-CASE WHEN beam_count > 0 THEN beam_volume_sum / beam_count ELSE 0 END AS beam_volume_avg,
-CASE WHEN column_count > 0 THEN column_volume_sum / column_count ELSE 0 END AS column_volume_avg
-ORDER BY storey_elevation ASC
-
-# Get materials of slab type:
-MATCH (m)<-[:Material]-(ml:IfcMaterialLayer)<-[:MaterialLayers]-(:IfcMaterialLayerSet)<-[:RelatingMaterial]-(:IfcRelAssociatesMaterial)-[:RelatedObjects]->(st:IfcSlabType)
-RETURN m, st
-
-# Get all elements that use steel:
-MATCH (m:IfcMaterial)<-[:RelatingMaterial]-(ascmat:IfcRelAssociatesMaterial)-[:RelatedObjects]->(o)
-WHERE toLower(m.Name) CONTAINS 'steel'
-RETURN o
-
-# Get element, element type, element entity and its related implicit quantity names (e.g., GrossVolume, length, area) and their corresponding quantity values:
-MATCH (e)<-[:RelatedObjects]-(rdbp:IfcRelDefinesByProperties)-[:RelatingPropertyDefinition]->(eq:IfcElementQuantity)-[:Quantities]->(q)
-WITH e, eq, q, LABELS(e)[0] AS element_entity, PROPERTIES(q) AS qProps
-RETURN e.Name AS elementName, element_entity, e.ObjectType AS element_type, q.Name AS quantity_property_name,
-CASE WHEN size(keys(qProps)) >= 2 THEN qProps[keys(qProps)[1]] ELSE null END AS quantity_property_value
-
+Critical Note: 
+Do not include any explanations or apologies in your responses.
+Do not respond to any questions that might ask anything else than for you to construct a Cypher statement.
+Do not include any text except the generated Cypher statement.
 
 The question is:
 {question}"""
@@ -167,14 +107,18 @@ else:
 # Official API doc for GraphCypherQAChain at: https://api.python.langchain.com/en/latest/chains/langchain.chains.graph_qa.base.GraphQAChain.html#
 graph_chain = GraphCypherQAChain.from_llm(
     cypher_llm=cypher_llm,
+    cypher_prompt=CYPHER_GENERATION_PROMPT,
     qa_llm=qa_llm,
     validate_cypher= True,
     graph=graph,
     verbose=True, 
-    # return_intermediate_steps = True,
+    return_intermediate_steps = True,
     return_direct = True
 )
-
+#neo4jquery = GraphCypherQAChain.from_llm(
+#    cypher_llm, graph=graph, verbose=True,
+#    cypher_prompt=CYPHER_GENERATION_PROMPT
+#)
 @retry(tries=2, delay=12)
 def get_results(question) -> str:
     """Generate a response from a GraphCypherQAChain targeted at generating answered related to relationships. 
@@ -189,12 +133,12 @@ def get_results(question) -> str:
     logging.info(f'Using Neo4j database at url: {url}')
 
     graph.refresh_schema()
-
+    
     prompt=CYPHER_GENERATION_PROMPT.format(schema=graph.get_schema, question=question)
     print('Prompt:', prompt)
 
     chain_result = None
-
+    print("before chain result")
     try:
         chain_result = graph_chain.invoke({
             "query": question},
@@ -205,7 +149,8 @@ def get_results(question) -> str:
         # Occurs when the chain can not generate a cypher statement
         # for the question with the given database schema
         logging.warning(f'Handled exception running graphCypher chain: {e}')
-
+        print(e)
+    print("after result")
     logging.debug(f'chain_result: {chain_result}')
 
     if chain_result is None:
