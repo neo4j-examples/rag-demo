@@ -62,8 +62,8 @@ def sidebar():
 
         # Example query to fetch data
         query = """
-        MATCH (n)-[r]->(m)
-            RETURN n, r, m limit 20
+        MATCH (n:IfcRelAggregates)-[r:RelatedObjects]->(m:IfcBuildingStorey)
+            RETURN n, r, m limit 3
         """
         results = fetch_data(query)
             
@@ -71,20 +71,14 @@ def sidebar():
             node1 = record["n"]
             node2 = record["m"]
             relationship = record["r"]
-            G.add_node(node1["nid"], label=node1["label"], properties=dict(node1))
-            G.add_node(node2["nid"], label=node2["label"], properties=dict(node2))
+            G.add_node(node1["nid"], label=list(node1.labels)[0], properties=dict(node1))
+            G.add_node(node2["nid"], label=list(node2.labels)[0], properties=dict(node2))
             G.add_edge(node1["nid"], node2["nid"], label=relationship.type, properties=dict(relationship))
-        net = Network(notebook=False, height="750px", width="100%", bgcolor="#222222", font_color="white")    
+        net = Network(notebook=False, height="750px", width="100%", bgcolor="#222222", font_color="white", cdn_resources='remote')
+ 
         net.from_nx(G)
- #       net.show("graph.html")
-        # Read the generated HTML file
-        # Generate the HTML for the graph
- #       net.save_graph("graph.html")
         html_content = net.generate_html(notebook=False)
-        # Read the generated HTML file
- #       with open("graph.html", "r") as f:
- #           html_content = f.read()
-#        html_content = net.generate_html()
+        html_content = html_content.replace("<head>", "<head>" + css_styles)
         st.components.v1.html(html_content, height=750) 
 
         st.markdown("""Questions you can ask of the dataset:""", unsafe_allow_html=True)
