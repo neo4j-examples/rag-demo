@@ -3,8 +3,9 @@ import streamlit as st
 import streamlit.components.v1 as components
 from langchain_community.graphs import Neo4jGraph
 from neo4j import GraphDatabase
-#from data_fetcher import get_neo4j_data
 import json
+import networkx as nx
+from pyvis.network import Network
 
 url = st.secrets["NEO4J_URI"]
 username = st.secrets["NEO4J_USERNAME"]
@@ -17,6 +18,7 @@ def fetch_data(query):
     with neo4j_conn.session() as session:
         result = session.run(query)
         return [record for record in result]
+
 
 
 # Streamlit app layout
@@ -51,57 +53,39 @@ def sidebar():
             # Streamlit app layout
             st.title("Neo4j Graph Visualization with Relationships")
 
+
+
+
+        # Streamlit app
+        st.title('Graph Visualization')
+        G = nx.Graph()
+
         # Example query to fetch data
-            query = """
-            MATCH (n)-[r]->(m)
-            RETURN n, r, m
-            LIMIT 25
-            """
-    #    query = """
-    #    MATCH (n:IfcBuildingStorey)<-[r]-(m)
-    #    RETURN n AS node_from, m AS node_to
-    #    LIMIT 6
-    #    """
-        data = fetch_data(query)
-##############################################################
-        nodes = []
-        links = []
-        for record in data:
-            node1 = dict(record['n'].items())  # Extract properties from node1
-            node2 = dict(record['m'].items())  # Extract properties from node2
-            relationship = dict(record['r'].items())  # Extract properties from relationship
-
-            nodes.append({'id': node1['nid'], 'group': 1})
-            nodes.append({'id': node2['nid'], 'group': 2})
-            links.append({'source': node1['nid'], 'target': node2['nid'],  'relationship': relationship,'value': 1})
-
-
-        d3_data = {
-            'nodes': nodes,
-            'links': links,
-        }
-
-        # Load HTML template
-        with open('/Users/amit/github/rag-demo/rag_demo/d3_template.html', 'r') as file:
-            html_template = file.read()
-
-        # Render HTML in Streamlit
-        st.components.v1.html(html_template.replace('{{ data | safe }}', json.dumps(d3_data)), height=600, scrolling=True)
-
-
-
-
-        # Display data
-#        st.write("Fetched Data:")
-#        st.write(data)
-
-        # Plot the graph
-#        fig = draw_graph(data)
-#        st.pyplot(fig)
-
-#        st.markdown(f"""This the schema in which the EDGAR filings are stored in Neo4j: \n <img style="width: 70%; height: auto;" src="{SCHEMA_IMG_PATH}"/>""", unsafe_allow_html=True)
-
-#        st.markdown(f"""This is how the Chatbot flow goes: \n <img style="width: 70%; height: auto;" src="{LANGCHAIN_IMG_PATH}"/>""", unsafe_allow_html=True)
+        query = """
+        MATCH (n)-[r]->(m)
+            RETURN n, r, m limit 20
+        """
+        results = fetch_data(query)
+            
+        for record in results:
+            node1 = record["n"]
+            node2 = record["m"]
+            relationship = record["r"]
+            G.add_node(node1["nid"], label=node1["label"], properties=dict(node1))
+            G.add_node(node2["nid"], label=node2["label"], properties=dict(node2))
+            G.add_edge(node1["nid"], node2["nid"], label=relationship.type, properties=dict(relationship))
+        net = Network(notebook=False, height="750px", width="100%", bgcolor="#222222", font_color="white")    
+        net.from_nx(G)
+ #       net.show("graph.html")
+        # Read the generated HTML file
+        # Generate the HTML for the graph
+ #       net.save_graph("graph.html")
+        html_content = net.generate_html(notebook=False)
+        # Read the generated HTML file
+ #       with open("graph.html", "r") as f:
+ #           html_content = f.read()
+#        html_content = net.generate_html()
+        st.components.v1.html(html_content, height=750) 
 
         st.markdown("""Questions you can ask of the dataset:""", unsafe_allow_html=True)
 
