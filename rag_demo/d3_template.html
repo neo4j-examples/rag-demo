@@ -4,16 +4,16 @@
   <style>
     .node {
       stroke: #333;
-      stroke-width: 1.5px;
+      stroke-width: 2.0px;
       fill: #1f77b4;
     }
     .link {
       stroke: #999;
-      stroke-opacity: 0.6;
+      stroke-opacity: 1.0;
     }
     text {
       font-family: Arial, sans-serif;
-      font-size: 12px;
+      font-size: 16px;
     }
   </style>
 </head>
@@ -47,7 +47,7 @@
       .data(data.nodes)
       .enter().append("circle")
         .attr("class", "node")
-        .attr("r", 15)
+        .attr("r", 20)
         .call(drag(simulation));
 
     node.append("title")
