@@ -78,7 +78,6 @@ def sidebar():
  
         net.from_nx(G)
         html_content = net.generate_html(notebook=False)
-        html_content = html_content.replace("<head>", "<head>" + css_styles)
         st.components.v1.html(html_content, height=750) 
 
         st.markdown("""Questions you can ask of the dataset:""", unsafe_allow_html=True)
