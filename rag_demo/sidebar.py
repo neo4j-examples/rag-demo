@@ -3,6 +3,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 from langchain_community.graphs import Neo4jGraph
 from neo4j import GraphDatabase
+#from data_fetcher import get_neo4j_data
+import json
 
 url = st.secrets["NEO4J_URI"]
 username = st.secrets["NEO4J_USERNAME"]
@@ -14,7 +16,7 @@ neo4j_conn = GraphDatabase.driver(
 def fetch_data(query):
     with neo4j_conn.session() as session:
         result = session.run(query)
-        return [record.data() for record in result]
+        return [record for record in result]
 
 
 # Streamlit app layout
@@ -26,42 +28,6 @@ st.title("Neo4j Graph Visualization")
 import networkx as nx
 import matplotlib.pyplot as plt
 
-def draw_graph(data):
-    G = nx.Graph()
-    
-    # Add nodes and edges
-    for record in data:
-        node_from = record.get('node_from')
-        node_to = record.get('node_to')
-        
-        # Add nodes
-        G.add_node(node_from['nid'], label=node_from.get('labels', ''))
-        G.add_node(node_to['nid'], label=node_to.get('label', 'Name'))
-        
-        # Add edge
-        G.add_edge(node_from['nid'], node_to['nid'])
-    
-    # Generate positions for nodes
-    pos = nx.spring_layout(G)
-    
-    # Create a new figure and axes
-    fig, ax = plt.subplots(figsize=(10, 8))
-    
-    # Draw the graph
-    nx.draw(
-        G, 
-        pos, 
-        with_labels=True, 
-        ax=ax, 
-        node_size=1000,         # Increase node size
-        node_color='lightblue', # Node color
-        edge_color='gray',      # Edge color
-        font_size=10,          # Font size for labels
-        font_weight='bold'     # Font weight for labels
-    )
-    
-    # Return the figure object
-    return fig
 
 
 def ChangeButtonColour(wgt_txt, wch_hex_colour = '12px'):
@@ -86,20 +52,52 @@ def sidebar():
             st.title("Neo4j Graph Visualization with Relationships")
 
         # Example query to fetch data
-        query = """
-        MATCH (n:IfcBuildingStorey)<-[r]-(m)
-        RETURN n AS node_from, m AS node_to
-        LIMIT 6
-        """
+            query = """
+            MATCH (n)-[r]->(m)
+            RETURN n, r, m
+            LIMIT 25
+            """
+    #    query = """
+    #    MATCH (n:IfcBuildingStorey)<-[r]-(m)
+    #    RETURN n AS node_from, m AS node_to
+    #    LIMIT 6
+    #    """
         data = fetch_data(query)
+##############################################################
+        nodes = []
+        links = []
+        for record in data:
+            node1 = dict(record['n'].items())  # Extract properties from node1
+            node2 = dict(record['m'].items())  # Extract properties from node2
+            relationship = dict(record['r'].items())  # Extract properties from relationship
+
+            nodes.append({'id': node1['nid'], 'group': 1})
+            nodes.append({'id': node2['nid'], 'group': 2})
+            links.append({'source': node1['nid'], 'target': node2['nid'],  'relationship': relationship,'value': 1})
+
+
+        d3_data = {
+            'nodes': nodes,
+            'links': links,
+        }
+
+        # Load HTML template
+        with open('/Users/amit/github/rag-demo/rag_demo/d3_template.html', 'r') as file:
+            html_template = file.read()
+
+        # Render HTML in Streamlit
+        st.components.v1.html(html_template.replace('{{ data | safe }}', json.dumps(d3_data)), height=600, scrolling=True)
+
+
+
 
         # Display data
 #        st.write("Fetched Data:")
 #        st.write(data)
 
         # Plot the graph
-        fig = draw_graph(data)
-        st.pyplot(fig)
+#        fig = draw_graph(data)
+#        st.pyplot(fig)
 
 #        st.markdown(f"""This the schema in which the EDGAR filings are stored in Neo4j: \n <img style="width: 70%; height: auto;" src="{SCHEMA_IMG_PATH}"/>""", unsafe_allow_html=True)
 
