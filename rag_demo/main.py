@@ -55,12 +55,14 @@ with placeholder.container():
             st.markdown(message["content"], unsafe_allow_html=True)
 
 # User input - switch between sidebar sample quick select or actual user input. Clunky but works.
+print("before free_questions_exhausted",free_questions_exhausted(), user_supplied_openai_key_unavailable() )
+
 if free_questions_exhausted() and user_supplied_openai_key_unavailable():
     st.warning(
         "Thank you for trying out the Auto Civil Engineer. Please input your OpenAI Key in the sidebar to continue asking questions."
     )
     st.stop()
-
+print("after free_questions_exhausted")
 if "sample" in st.session_state and st.session_state["sample"] is not None:
     user_input = st.session_state["sample"]
 else:

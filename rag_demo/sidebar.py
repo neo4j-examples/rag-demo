@@ -30,7 +30,9 @@ st.title("Neo4j Graph Visualization")
 import networkx as nx
 import matplotlib.pyplot as plt
 
-
+# Get all secrets
+models_dct = {v: k.split("_")[3] + "_API_KEY" for  k,v in st.secrets.items() if "GPT_MODEL_NAME" in k }
+print (models_dct)
 
 def ChangeButtonColour(wgt_txt, wch_hex_colour = '12px'):
     htmlstr = """<script>var elements = window.parent.document.querySelectorAll('*'), i;
@@ -43,9 +45,9 @@ def ChangeButtonColour(wgt_txt, wch_hex_colour = '12px'):
 
 def sidebar():
     with st.sidebar:
-
+        model_name=list(models_dct.keys())[0] if "GPT_MODEL_NAME" not in st.session_state else st.session_state["GPT_MODEL_NAME"] 
         with st.expander("OpenAI Key"):
-            new_oak = st.text_input("Your OpenAI API Key")
+            new_oak = st.text_input("Your API Key")
             # if "USER_OPENAI_API_KEY" not in st.session_state:
             #     st.session_state["USER_OPENAI_API_KEY"] = new_oak
             # else:
@@ -53,7 +55,14 @@ def sidebar():
             # Streamlit app layout
             st.title("Neo4j Graph Visualization with Relationships")
 
+        model_name = st.selectbox(
+            "select model- beaware: no free quote for gpt-4o!!",
+            models_dct.keys(),
+        )
 
+        st.write("You selected:", model_name , models_dct[model_name])
+        st.session_state["MODEL_API_KEY_TYPE"]=models_dct[model_name]
+        st.session_state["GPT_MODEL_NAME"]=model_name
 
 
         # Streamlit app
