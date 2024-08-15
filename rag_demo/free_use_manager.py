@@ -17,9 +17,9 @@ def free_questions_exhausted()-> bool:
     return remaining <= 0
 
 def user_supplied_openai_key_unavailable()-> bool:
-    if "USER_OPENAI_KEY" not in st.session_state:
+    if "USER_OPENAI_API_KEY" not in st.session_state:
         return True
-    uok = st.session_state["USER_OPENAI_KEY"]
+    uok = st.session_state["USER_OPENAI_API_KEY"]
     if uok is None or uok == "":
         return True
     return False
