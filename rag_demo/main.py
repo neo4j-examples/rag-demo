@@ -11,7 +11,7 @@ from constants import TITLE
 import logging
 #import rag_agent
 import  graph_cypher_chain
-from graph_cypher_tool import graph_cypher_tool
+from graph_cypher_tool import GrpahCypherTool
 import streamlit as st
 from sidebar import sidebar
 
@@ -35,7 +35,8 @@ sidebar()
 placeholder = st.empty()
 emoji_feedback = st.empty()
 user_placeholder = st.empty()
-
+cypher_tool=GrpahCypherTool()
+   
 # Initialize message history
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -56,7 +57,7 @@ with placeholder.container():
 # User input - switch between sidebar sample quick select or actual user input. Clunky but works.
 if free_questions_exhausted() and user_supplied_openai_key_unavailable():
     st.warning(
-        "Thank you for trying out the Neo4j Rag Demo. Please input your OpenAI Key in the sidebar to continue asking questions."
+        "Thank you for trying out the Auto Civil Engineer. Please input your OpenAI Key in the sidebar to continue asking questions."
     )
     st.stop()
 
@@ -95,7 +96,7 @@ if user_input:
 #                agent_response = graph_cypher_chain.get_results(
 #                    question=user_input
 #                )    
-                agent_response=graph_cypher_tool.run(tool_input=user_input)            
+                agent_response=cypher_tool.run(tool_input=user_input)            
                 if isinstance(agent_response, dict) is False:
                     logging.warning(
                         f"Agent response was not the expected dict type: {agent_response}"

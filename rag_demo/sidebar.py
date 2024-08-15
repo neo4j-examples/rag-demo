@@ -49,7 +49,7 @@ def sidebar():
             # if "USER_OPENAI_KEY" not in st.session_state:
             #     st.session_state["USER_OPENAI_KEY"] = new_oak
             # else:
-            st.session_state["USER_OPENAI_KEY"] = new_oak
+            st.session_state["USER_OPENAI_API_KEY"] = new_oak
             # Streamlit app layout
             st.title("Neo4j Graph Visualization with Relationships")
 
