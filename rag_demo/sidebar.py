@@ -67,7 +67,6 @@ def sidebar():
 #            models_dct.keys(),
 #        )
 
-        st.write("You selected:", model_name , models_dct[model_name])
         st.session_state["MODEL_API_KEY_TYPE"]=models_dct[model_name]
         st.session_state["GPT_MODEL_NAME"]=model_name
 
