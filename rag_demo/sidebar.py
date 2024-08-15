@@ -46,7 +46,9 @@ def ChangeButtonColour(wgt_txt, wch_hex_colour = '12px'):
 def sidebar():
     with st.sidebar:
         model_name=list(models_dct.keys())[0] if "GPT_MODEL_NAME" not in st.session_state else st.session_state["GPT_MODEL_NAME"] 
-        with st.expander("OpenAI Key"):
+        remaining_free_queries=st.session_state["FREE_QUESTIONS_REMAINING"] if "FREE_QUESTIONS_REMAINING" in st.session_state else st.secrets["FREE_QUESTIONS_PER_SESSION"]
+        st.write(f"remaining free quoata is: {remaining_free_queries} free questions")
+        with st.expander(f"""Model Key- (needed after free quota is exahusted)"""):
             new_oak = st.text_input("Your API Key")
             # if "USER_OPENAI_API_KEY" not in st.session_state:
             #     st.session_state["USER_OPENAI_API_KEY"] = new_oak
