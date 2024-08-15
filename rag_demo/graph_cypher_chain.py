@@ -93,14 +93,14 @@ import os
 
 class CypherChainClass:
     def __init__(self):
-        self.openai_key = st.secrets["OPENAI_API_KEY"]
+        self.api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else st.secrets["GOOGLE_API_KEY"]
         self.model_name=st.secrets['GPT_MODEL_NAME']
         self.graph_chain=None
         self.set_graphchain()
 
     def update_key(self):
-        self.openai_key = st.session_state["USER_OPENAI_API_KEY"]
-        print("setting new key: " + self.openai_key)
+        self.api_key = st.session_state["USER_OPENAI_API_KEY"]
+        print("setting new key: " + self.api_key)
         self.set_graphchain()
 
     def update_model(self, modle_name):
@@ -110,12 +110,11 @@ class CypherChainClass:
         print("setting new graphchain")
         self.graph_chain=None
         if "gemini" in self.model_name:
-            google_api_key=os.getenv('GOOGLE_API_KEY')
-            cypher_llm = ChatGoogleGenerativeAI(model=self.model_name, google_api_key=google_api_key,temperature=0, verbose=True,top_k=200)
-            qa_llm = ChatGoogleGenerativeAI(model=self.model_name, google_api_key=google_api_key,temperature=0, verbose=True,top_k=200)
+            cypher_llm = ChatGoogleGenerativeAI(model=self.model_name, google_api_key=self.api_key,temperature=0, verbose=True,top_k=200)
+            qa_llm = ChatGoogleGenerativeAI(model=self.model_name, google_api_key=self.api_key,temperature=0, verbose=True,top_k=200)
         else:
-            cypher_llm = ChatOpenAI(model=self.model_name, openai_api_key=self.openai_key,openai_api_base=st.secrets["OPENAI_API_BASE"],temperature=0)
-            qa_llm= ChatOpenAI(model=self.model_name, openai_api_key=self.openai_key,openai_api_base=st.secrets["OPENAI_API_BASE"],temperature=0)
+            cypher_llm = ChatOpenAI(model=self.model_name, openai_api_key=self.api_key,openai_api_base=st.secrets["OPENAI_API_BASE"],temperature=0)
+            qa_llm= ChatOpenAI(model=self.model_name, openai_api_key=self.api_key,openai_api_base=st.secrets["OPENAI_API_BASE"],temperature=0)
         self.graph_chain = GraphCypherQAChain.from_llm(
             cypher_llm=cypher_llm,
             cypher_prompt=CYPHER_GENERATION_PROMPT,
@@ -129,11 +128,11 @@ class CypherChainClass:
 
     @retry(tries=2, delay=12)
     def get_results(self, question) -> str:
-        if (("USER_OPENAI_API_KEY" in st.session_state) and (st.session_state["USER_OPENAI_API_KEY"]!=self.openai_key )):
+        if (("USER_OPENAI_API_KEY" in st.session_state) and (st.session_state["USER_OPENAI_API_KEY"]!=self.api_key )):
             self.update_key()
             self.set_graphchain()
         else:
-            print("keys are equal" + self.openai_key)
+            print("keys are equal" + self.api_key)
 
         """Generate a response from a GraphCypherQAChain targeted at generating answered related to relationships. 
 
