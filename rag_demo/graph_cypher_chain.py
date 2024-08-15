@@ -83,11 +83,6 @@ url = st.secrets["NEO4J_URI"]
 username = st.secrets["NEO4J_USERNAME"]
 password = st.secrets["NEO4J_PASSWORD"]
 
-if "USER_OPENAI_API_KEY" in st.session_state:
-    openai_key = st.session_state["USER_OPENAI_API_KEY"]
-else:
-    openai_key = st.secrets["OPENAI_API_KEY"]
-
 graph = Neo4jGraph(
     url=url,
     username=username,
@@ -95,69 +90,86 @@ graph = Neo4jGraph(
     sanitize = True
 )
 import os
-cypher_llm=None
-qa_llm=None
-#model_name=os.getenv('GPT_MODEL_NAME')
-model_name=st.secrets["GPT_MODEL_NAME"]
-if "gemini" in model_name:
-    google_api_key=os.getenv('GOOGLE_API_KEY')
-    cypher_llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=google_api_key,temperature=0, verbose=True,top_k=200)
-    qa_llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=google_api_key,temperature=0, verbose=True,top_k=200)
-else:
-    cypher_llm = ChatOpenAI(model=os.getenv('GPT_MODEL_NAME'), openai_api_key=openai_key,openai_api_base=st.secrets["OPENAI_API_BASE"],temperature=0)
-    qa_llm= ChatOpenAI(model=os.getenv('GPT_MODEL_NAME'), openai_api_key=openai_key,openai_api_base=st.secrets["OPENAI_API_BASE"],temperature=0)
-# Official API doc for GraphCypherQAChain at: https://api.python.langchain.com/en/latest/chains/langchain.chains.graph_qa.base.GraphQAChain.html#
-graph_chain = GraphCypherQAChain.from_llm(
-    cypher_llm=cypher_llm,
-    cypher_prompt=CYPHER_GENERATION_PROMPT,
-    qa_llm=qa_llm,
-    validate_cypher= True,
-    graph=graph,
-    verbose=True, 
-    return_intermediate_steps = True,
-    return_direct = True
-)
-#neo4jquery = GraphCypherQAChain.from_llm(
-#    cypher_llm, graph=graph, verbose=True,
-#    cypher_prompt=CYPHER_GENERATION_PROMPT
-#)
-@retry(tries=2, delay=12)
-def get_results(question) -> str:
-    """Generate a response from a GraphCypherQAChain targeted at generating answered related to relationships. 
 
-    Args:
-        question (str): User query
+class CypherChainClass:
+    def __init__(self):
+        self.openai_key = st.secrets["OPENAI_API_KEY"]
+        self.model_name=st.secrets['GPT_MODEL_NAME']
+        self.graph_chain=None
+        self.set_graphchain()
 
-    Returns:
-        str: Answer from chain
-    """
+    def update_key(self):
+        self.openai_key = st.session_state["USER_OPENAI_API_KEY"]
+        print("setting new key: " + self.openai_key)
+        self.set_graphchain()
 
-    logging.info(f'Using Neo4j database at url: {url}')
+    def update_model(self, modle_name):
+        self.model_name=st.session_state["GPT_MODEL_NAME"]
 
-    graph.refresh_schema()
-    
-    prompt=CYPHER_GENERATION_PROMPT.format(schema=graph.get_schema, question=question)
-    print('Prompt:', prompt)
+    def set_graphchain(self):
+        print("setting new graphchain")
+        self.graph_chain=None
+        if "gemini" in self.model_name:
+            google_api_key=os.getenv('GOOGLE_API_KEY')
+            cypher_llm = ChatGoogleGenerativeAI(model=self.model_name, google_api_key=google_api_key,temperature=0, verbose=True,top_k=200)
+            qa_llm = ChatGoogleGenerativeAI(model=self.model_name, google_api_key=google_api_key,temperature=0, verbose=True,top_k=200)
+        else:
+            cypher_llm = ChatOpenAI(model=self.model_name, openai_api_key=self.openai_key,openai_api_base=st.secrets["OPENAI_API_BASE"],temperature=0)
+            qa_llm= ChatOpenAI(model=self.model_name, openai_api_key=self.openai_key,openai_api_base=st.secrets["OPENAI_API_BASE"],temperature=0)
+        self.graph_chain = GraphCypherQAChain.from_llm(
+            cypher_llm=cypher_llm,
+            cypher_prompt=CYPHER_GENERATION_PROMPT,
+            qa_llm=qa_llm,
+            validate_cypher= True,
+            graph=graph,
+            verbose=True, 
+            return_intermediate_steps = True,
+            return_direct = True)
+        
 
-    chain_result = None
-    print("before chain result")
-    try:
-        chain_result = graph_chain.invoke({
-            "query": question},
-            prompt=prompt,
-            return_only_outputs = True,
-        )
-    except Exception as e:
-        # Occurs when the chain can not generate a cypher statement
-        # for the question with the given database schema
-        logging.warning(f'Handled exception running graphCypher chain: {e}')
-        print(e)
-    print("after result")
-    logging.debug(f'chain_result: {chain_result}')
+    @retry(tries=2, delay=12)
+    def get_results(self, question) -> str:
+        if (("USER_OPENAI_API_KEY" in st.session_state) and (st.session_state["USER_OPENAI_API_KEY"]!=self.openai_key )):
+            self.update_key()
+            self.set_graphchain()
+        else:
+            print("keys are equal" + self.openai_key)
 
-    if chain_result is None:
-        return "Sorry, I couldn't find an answer to your question"
-    
-    result = chain_result.get("result", None)
+        """Generate a response from a GraphCypherQAChain targeted at generating answered related to relationships. 
 
-    return result
+        Args:
+            question (str): User query
+
+        Returns:
+            str: Answer from chain
+        """
+
+        logging.info(f'Using Neo4j database at url: {url}')
+
+        graph.refresh_schema()
+        
+        prompt=CYPHER_GENERATION_PROMPT.format(schema=graph.get_schema, question=question)
+        #print('Prompt:', prompt)
+
+        chain_result = None
+        print("before chain result")
+        try:
+            chain_result = self.graph_chain.invoke({
+                "query": question},
+                prompt=prompt,
+                return_only_outputs = True,
+            )
+        except Exception as e:
+            # Occurs when the chain can not generate a cypher statement
+            # for the question with the given database schema
+            logging.warning(f'Handled exception running graphCypher chain: {e}')
+            print(e)
+        print("after result")
+        logging.debug(f'chain_result: {chain_result}')
+
+        if chain_result is None:
+            return "Sorry, I couldn't find an answer to your question"
+        
+        result = chain_result.get("result", None)
+
+        return result
