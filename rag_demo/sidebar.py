@@ -46,8 +46,8 @@ def sidebar():
 
         with st.expander("OpenAI Key"):
             new_oak = st.text_input("Your OpenAI API Key")
-            # if "USER_OPENAI_KEY" not in st.session_state:
-            #     st.session_state["USER_OPENAI_KEY"] = new_oak
+            # if "USER_OPENAI_API_KEY" not in st.session_state:
+            #     st.session_state["USER_OPENAI_API_KEY"] = new_oak
             # else:
             st.session_state["USER_OPENAI_API_KEY"] = new_oak
             # Streamlit app layout

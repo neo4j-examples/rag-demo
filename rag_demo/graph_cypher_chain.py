@@ -124,8 +124,7 @@ class CypherChainClass:
             graph=graph,
             verbose=True, 
             return_intermediate_steps = True,
-            return_direct = True
-        )
+            return_direct = True)
         
 
     @retry(tries=2, delay=12)
@@ -133,7 +132,6 @@ class CypherChainClass:
         if (("USER_OPENAI_API_KEY" in st.session_state) and (st.session_state["USER_OPENAI_API_KEY"]!=self.openai_key )):
             self.update_key()
             self.set_graphchain()
-            print("AMIT########################get_results self.openai_key not equal"+ self.openai_key + "   " + st.session_state["USER_OPENAI_API_KEY"])
         else:
             print("keys are equal" + self.openai_key)
 
