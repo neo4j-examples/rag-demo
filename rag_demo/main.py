@@ -9,7 +9,9 @@ from langchain_community.cache import InMemoryCache
 from streamlit_feedback import streamlit_feedback
 from constants import TITLE
 import logging
-import rag_agent
+#import rag_agent
+import  graph_cypher_chain
+from graph_cypher_tool import GrpahCypherTool
 import streamlit as st
 from sidebar import sidebar
 
@@ -33,7 +35,8 @@ sidebar()
 placeholder = st.empty()
 emoji_feedback = st.empty()
 user_placeholder = st.empty()
-
+cypher_tool=GrpahCypherTool()
+   
 # Initialize message history
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -52,17 +55,19 @@ with placeholder.container():
             st.markdown(message["content"], unsafe_allow_html=True)
 
 # User input - switch between sidebar sample quick select or actual user input. Clunky but works.
+print("before free_questions_exhausted",free_questions_exhausted(), user_supplied_openai_key_unavailable() )
+
 if free_questions_exhausted() and user_supplied_openai_key_unavailable():
     st.warning(
-        "Thank you for trying out the Neo4j Rag Demo. Please input your OpenAI Key in the sidebar to continue asking questions."
+        "Thank you for trying out the Auto Civil Engineer. Please input your OpenAI Key in the sidebar to continue asking questions."
     )
     st.stop()
-
+print("after free_questions_exhausted")
 if "sample" in st.session_state and st.session_state["sample"] is not None:
     user_input = st.session_state["sample"]
 else:
     user_input = st.chat_input(
-        placeholder="Ask question on the SEC Filings", key="user_input"
+        placeholder="Ask question on the IFC project", key="user_input"
     )
 
 if user_input:
@@ -87,17 +92,20 @@ if user_input:
                 # )
                 # StreamlitCcallbackHandler api doc: https://api.python.langchain.com/en/latest/callbacks/langchain_community.callbacks.streamlit.streamlit_callback_handler.StreamlitCallbackHandler.html
 
-                agent_response = rag_agent.get_results(
-                    question=user_input, callbacks=[]
-                )
-
+#                agent_response = rag_agent.get_results(
+#                    question=user_input, callbacks=[]
+#                )
+#                agent_response = graph_cypher_chain.get_results(
+#                    question=user_input
+#                )    
+                agent_response=cypher_tool.run(tool_input=user_input)            
                 if isinstance(agent_response, dict) is False:
                     logging.warning(
                         f"Agent response was not the expected dict type: {agent_response}"
                     )
                     agent_response = str(agent_response)
-
-                content = agent_response["output"]
+                content = str(agent_response)
+ #               content = agent_response["output"]
 
                 track(
                     "rag_demo", "ai_response", {"type": "rag_agent", "answer": content}

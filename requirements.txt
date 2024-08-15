@@ -86,3 +86,4 @@ validators==0.22.0 ; python_version >= "3.11" and python_version < "4.0"
 watchdog==4.0.0 ; python_version >= "3.11" and python_version < "4.0" and platform_system != "Darwin"
 yarl==1.9.4 ; python_version >= "3.11" and python_version < "4.0"
 zipp==3.17.0 ; python_version >= "3.11" and python_version < "4.0"
+langchain-google-genai

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    .node {
+      stroke: #333;
+      stroke-width: 2.0px;
+      fill: #1f77b4;
+    }
+    .link {
+      stroke: #999;
+      stroke-opacity: 1.0;
+    }
+    text {
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    const width = 960;
+    const height = 600;
+
+    const svg = d3.select("body").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+    const data = {{ data | safe }};
+
+    const simulation = d3.forceSimulation()
+        .force("link", d3.forceLink().id(d => d.id))
+        .force("charge", d3.forceManyBody().strength(-400))
+        .force("center", d3.forceCenter(width / 2, height / 2));
+
+    const link = svg.append("g")
+        .attr("class", "links")
+      .selectAll("line")
+      .data(data.links)
+      .enter().append("line")
+        .attr("class", "link");
+
+    const node = svg.append("g")
+        .attr("class", "nodes")
+      .selectAll("circle")
+      .data(data.nodes)
+      .enter().append("circle")
+        .attr("class", "node")
+        .attr("r", 20)
+        .call(drag(simulation));
+
+    node.append("title")
+        .text(d => d.id);
+
+    svg.append("g")
+      .attr("class", "texts")
+      .selectAll("text")
+      .data(data.nodes)
+      .enter().append("text")
+        .attr("x", d => d.x)
+        .attr("y", d => d.y)
+        .attr("dy", ".35em")
+        .attr("text-anchor", "middle")
+        .text(d => d.id);
+
+    simulation
+        .nodes(data.nodes)
+        .on("tick", ticked);
+
+    simulation.force("link")
+        .links(data.links);
+
+    function ticked() {
+      link
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
+
+      node
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y);
+
+      svg.selectAll("text")
+          .attr("x", d => d.x)
+          .attr("y", d => d.y);
+    }
+
+    function drag(simulation) {
+      function dragstarted(event) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        event.subject.fx = event.subject.x;
+        event.subject.fy = event.subject.y;
+      }
+
+      function dragged(event) {
+        event.subject.fx = event.x;
+        event.subject.fy = event.y;
+      }
+
+      function dragended(event) {
+        if (!event.active) simulation.alphaTarget(0);
+        event.subject.fx = null;
+        event.subject.fy = null;
+      }
+
+      return d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended);
+    }
+  </script>
+</body>
+</html>
+
