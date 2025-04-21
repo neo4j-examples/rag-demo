@@ -10,6 +10,7 @@ from streamlit_feedback import streamlit_feedback
 from constants import TITLE
 import logging
 import rag_agent
+import graph_cypher_chain
 import streamlit as st
 from sidebar import sidebar
 
@@ -39,7 +40,7 @@ if "messages" not in st.session_state:
     st.session_state.messages = [
         {
             "role": "ai",
-            "content": f"This is a Proof of Concept application which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using both vectors and structured data.\nSee the sidebar for more information!",
+            "content": f"This is a Proof of Concept agpplication which shows how GenAI can be used with Neo4j to build and consume Knowledge Graphs using both vectors and structured data.\nSee the sidebar for more information!",
         },
         # {"role": "ai", "content": f"""This the schema in which the EDGAR filings are stored in Neo4j: \n <img style="width: 70%; height: auto;" src="{SCHEMA_IMG_PATH}"/>"""},
         # {"role": "ai", "content": f"""This is how the Chatbot flow goes: \n <img style="width: 70%; height: auto;" src="{LANGCHAIN_IMG_PATH}"/>"""}
@@ -88,7 +89,7 @@ if user_input:
                 # StreamlitCcallbackHandler api doc: https://api.python.langchain.com/en/latest/callbacks/langchain_community.callbacks.streamlit.streamlit_callback_handler.StreamlitCallbackHandler.html
 
                 agent_response = rag_agent.get_results(
-                    question=user_input, callbacks=[]
+                    question=user_input,
                 )
 
                 if isinstance(agent_response, dict) is False:
